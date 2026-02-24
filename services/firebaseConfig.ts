@@ -1,4 +1,5 @@
 import { initializeApp } from 'firebase/app';
+import { getAuth } from 'firebase/auth';
 import { enableIndexedDbPersistence, getFirestore } from 'firebase/firestore';
 
 const firebaseConfig = {
@@ -31,6 +32,7 @@ export const isFirebaseConfigured = () => {
 
 let app: ReturnType<typeof initializeApp> | null = null;
 let db: ReturnType<typeof getFirestore> | null = null;
+let auth: ReturnType<typeof getAuth> | null = null;
 
 export const getDb = () => {
     if (!db) {
@@ -50,6 +52,19 @@ export const getDb = () => {
         });
     }
     return db;
+};
+
+export const getAuthService = () => {
+    if (!auth) {
+        if (!isFirebaseConfigured()) {
+            throw new Error('Firebase is not configured.');
+        }
+        if (!app) {
+            app = initializeApp(firebaseConfig);
+        }
+        auth = getAuth(app);
+    }
+    return auth;
 };
 
 export default getDb;

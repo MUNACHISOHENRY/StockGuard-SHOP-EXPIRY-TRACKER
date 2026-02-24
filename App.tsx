@@ -1,9 +1,11 @@
-import { AlertTriangle, Bell, Check, ChevronLeft, ChevronRight, Info, LayoutDashboard, List, PackageOpen, PlusCircle, Search, Settings, ShoppingBasket, X } from 'lucide-react';
+import { AlertTriangle, Bell, Check, ChevronLeft, ChevronRight, Info, LayoutDashboard, List, LogOut, PackageOpen, PlusCircle, Search, Settings, ShoppingBasket, X } from 'lucide-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import AddItem from './components/AddItem';
+import Auth from './components/Auth';
 import Dashboard from './components/Dashboard';
 import InventoryList from './components/InventoryList';
 import ProductDetails from './components/ProductDetails';
+import { logOut, subscribeToAuthChanges, User } from './services/authService';
 import { isFirebaseConfigured } from './services/firebaseConfig';
 import * as firestoreService from './services/firestoreService';
 import { Category, CATEGORY_COLORS, Product, ViewState } from './types';
@@ -137,6 +139,8 @@ const App: React.FC = () => {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [user, setUser] = useState<User | null>(null);
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
   const seededRef = useRef(false);
 
   // Global Search State
@@ -172,19 +176,41 @@ const App: React.FC = () => {
     setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 350);
   }, []);
 
-  // ─── Data Loading ───────────────────────────────────────────────
+  // ─── Auth Subscription ──────────────────────────────────────────
   useEffect(() => {
     if (useFirebase) {
+      const unsubscribe = subscribeToAuthChanges((currentUser) => {
+        setUser(currentUser);
+        setIsAuthLoading(false);
+      });
+      return () => unsubscribe();
+    } else {
+      setIsAuthLoading(false);
+    }
+  }, []);
+
+  // ─── Data Loading ───────────────────────────────────────────────
+  useEffect(() => {
+    console.log('🔄 Data loading effect triggered. User:', user?.uid, 'useFirebase:', useFirebase);
+    if (!user && useFirebase) {
+      setProducts([]);
+      setIsLoading(false);
+      return;
+    }
+
+    if (useFirebase && user) {
+      setIsLoading(true);
       const unsubscribe = firestoreService.subscribeToProducts(
+        user.uid,
         (firestoreProducts) => {
           setProducts(firestoreProducts);
           setIsLoading(false);
 
-          const alreadySeeded = seededRef.current || localStorage.getItem('stockguard_seeded') === 'true';
+          const alreadySeeded = seededRef.current || localStorage.getItem(`stockguard_seeded_${user.uid}`) === 'true';
           if (firestoreProducts.length === 0 && !alreadySeeded) {
             seededRef.current = true;
-            localStorage.setItem('stockguard_seeded', 'true');
-            firestoreService.seedDemoData(MOCK_DATA).catch(console.error);
+            localStorage.setItem(`stockguard_seeded_${user.uid}`, 'true');
+            firestoreService.seedDemoData(MOCK_DATA, user.uid).catch(console.error);
           }
         },
         (error) => {
@@ -207,7 +233,7 @@ const App: React.FC = () => {
       }
       setIsLoading(false);
     }
-  }, []);
+  }, [user, useFirebase]);
 
   // Save to localStorage (only when not using Firebase)
   useEffect(() => {
@@ -260,8 +286,8 @@ const App: React.FC = () => {
       addedDate: new Date().toISOString()
     };
 
-    if (useFirebase) {
-      await firestoreService.addProduct(product);
+    if (useFirebase && user) {
+      await firestoreService.addProduct({ ...product, userId: user.uid });
     } else {
       setProducts(prev => [...prev, product]);
     }
@@ -348,6 +374,8 @@ const App: React.FC = () => {
   };
 
   // ─── Loading State ─────────────────────────────────────────────
+  if (isAuthLoading) return <LoadingSkeleton />;
+  if (!user && useFirebase) return <Auth onAuthSuccess={() => { }} />;
   if (isLoading) return <LoadingSkeleton />;
 
   return (
@@ -393,13 +421,24 @@ const App: React.FC = () => {
             <span className={`${isSidebarCollapsed ? 'hidden' : ''}`}>Settings</span>
           </button>
 
+          <button
+            onClick={async () => {
+              await logOut();
+              addToast('info', 'Logged out successfully');
+            }}
+            className={`flex items-center gap-3 p-2.5 w-full text-sm font-medium text-red-500 hover:text-red-700 rounded-xl hover:bg-red-50 transition-all ${isSidebarCollapsed ? 'justify-center' : 'px-3'}`}
+          >
+            <LogOut size={18} />
+            <span className={`${isSidebarCollapsed ? 'hidden' : ''}`}>Sign Out</span>
+          </button>
+
           <div className={`flex items-center gap-3 p-2.5 rounded-xl transition-all ${isSidebarCollapsed ? 'justify-center' : 'bg-gradient-to-r from-gray-50 to-white border border-gray-100 px-3'}`}>
             <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white font-bold text-xs shrink-0 ring-2 ring-white shadow-sm">
-              SG
+              {user?.email?.charAt(0).toUpperCase() || 'SG'}
             </div>
             <div className={`overflow-hidden transition-all duration-300 ${isSidebarCollapsed ? 'w-0 opacity-0 hidden' : 'w-auto opacity-100'}`}>
-              <p className="text-sm font-bold text-gray-900 truncate">My Store</p>
-              <p className="text-[10px] text-gray-400 font-medium truncate">Admin</p>
+              <p className="text-sm font-bold text-gray-900 truncate">{user?.email?.split('@')[0] || 'My Store'}</p>
+              <p className="text-[10px] text-gray-400 font-medium truncate">{user ? 'User' : 'Admin'}</p>
             </div>
           </div>
         </div>
@@ -655,10 +694,12 @@ const App: React.FC = () => {
                 onClick={async () => {
                   if (window.confirm('This will clear all inventory data and load demo products. Are you sure?')) {
                     if (useFirebase) {
+                      console.log(`🔄 Resetting Firebase data for user ${user?.uid}`);
                       const deletePromises = products.map(p => firestoreService.deleteProduct(p.id));
                       await Promise.all(deletePromises);
-                      await firestoreService.seedDemoData(MOCK_DATA);
+                      await firestoreService.seedDemoData(MOCK_DATA, user!.uid);
                     } else {
+                      console.log('🔄 Resetting local storage data');
                       localStorage.removeItem('freshTrack_inventory');
                       setProducts(MOCK_DATA);
                     }

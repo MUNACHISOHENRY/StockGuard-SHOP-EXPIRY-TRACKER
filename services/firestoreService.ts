@@ -4,9 +4,11 @@ import {
     doc,
     DocumentData,
     onSnapshot,
+    query,
     QuerySnapshot,
     setDoc,
-    updateDoc
+    updateDoc,
+    where
 } from 'firebase/firestore';
 import { Product } from '../types';
 import { getDb } from './firebaseConfig';
@@ -18,15 +20,18 @@ const COLLECTION_NAME = 'products';
  * Returns an unsubscribe function.
  */
 export const subscribeToProducts = (
+    userId: string,
     onUpdate: (products: Product[]) => void,
     onError?: (error: Error) => void
 ): (() => void) => {
     const db = getDb();
     const colRef = collection(db, COLLECTION_NAME);
+    const q = query(colRef, where('userId', '==', userId));
 
     const unsubscribe = onSnapshot(
-        colRef,
+        q,
         (snapshot: QuerySnapshot<DocumentData>) => {
+            console.log(`📡 Firestore update for user ${userId}: ${snapshot.docs.length} products`);
             const products: Product[] = snapshot.docs.map((doc) => ({
                 ...(doc.data() as Omit<Product, 'id'>),
                 id: doc.id,
@@ -71,11 +76,11 @@ export const deleteProduct = async (id: string): Promise<void> => {
 /**
  * Seed demo data into Firestore (used for initial setup or reset).
  */
-export const seedDemoData = async (products: Product[]): Promise<void> => {
+export const seedDemoData = async (products: Product[], userId: string): Promise<void> => {
     const db = getDb();
     const promises = products.map((product) => {
         const { id, ...data } = product;
-        return setDoc(doc(db, COLLECTION_NAME, id), data);
+        return setDoc(doc(db, COLLECTION_NAME, id), { ...data, userId });
     });
     await Promise.all(promises);
 };

@@ -19,13 +19,14 @@ export interface Product {
   quantity: number;
   addedDate: string;
   imageUrl?: string; // Optional Base64 or URL
-  
+
   // New detailed fields
   description?: string;
   price?: number;
   sku?: string;
   location?: string;
   minStockThreshold?: number; // For low stock alerts
+  userId?: string; // Associated user ID
 }
 
 export type ViewState = 'DASHBOARD' | 'INVENTORY' | 'ADD_ITEM' | 'PRODUCT_DETAILS';
