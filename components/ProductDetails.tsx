@@ -439,8 +439,8 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({ product, allProducts, o
                             <button
                                 onClick={() => setIsEditing(!isEditing)}
                                 className={`w-full flex items-center gap-3 px-4 py-3 border rounded-xl font-bold text-sm transition-all shadow-sm ${isEditing
-                                        ? 'border-primary-200 text-primary-700 bg-primary-50 hover:bg-primary-100'
-                                        : 'border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300'
+                                    ? 'border-primary-200 text-primary-700 bg-primary-50 hover:bg-primary-100'
+                                    : 'border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300'
                                     }`}
                             >
                                 <Edit size={16} /> {isEditing ? 'Editing...' : 'Edit Details'}
@@ -448,8 +448,8 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({ product, allProducts, o
                             <button
                                 onClick={() => setShowStockUpdate(!showStockUpdate)}
                                 className={`w-full flex items-center gap-3 px-4 py-3 border rounded-xl font-bold text-sm transition-all shadow-sm ${showStockUpdate
-                                        ? 'border-primary-200 text-primary-700 bg-primary-50 hover:bg-primary-100'
-                                        : 'border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300'
+                                    ? 'border-primary-200 text-primary-700 bg-primary-50 hover:bg-primary-100'
+                                    : 'border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300'
                                     }`}
                             >
                                 <RotateCcw size={16} /> Update Stock
@@ -459,24 +459,24 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({ product, allProducts, o
                             {showStockUpdate && (
                                 <div className="bg-gray-50 rounded-xl p-4 border border-gray-200 space-y-3 animate-fade-in">
                                     <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Set new stock level</p>
-                                    <div className="flex items-center gap-3">
+                                    <div className="flex items-center gap-3 bg-white p-2 rounded-xl border border-gray-200 shadow-sm">
                                         <button
                                             onClick={() => setStockValue(Math.max(0, stockValue - 1))}
-                                            className="w-10 h-10 rounded-xl bg-white border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-all text-gray-500"
+                                            className="w-10 h-10 rounded-lg bg-gray-50 border border-gray-200 flex items-center justify-center hover:bg-gray-100 hover:border-gray-300 transition-all text-gray-500 active:scale-95"
                                         >
-                                            <Minus size={16} />
+                                            <Minus size={16} strokeWidth={2.5} />
                                         </button>
                                         <input
                                             type="number"
                                             value={stockValue}
                                             onChange={(e) => setStockValue(Math.max(0, parseInt(e.target.value) || 0))}
-                                            className="flex-1 text-center text-xl font-bold bg-white border border-gray-200 rounded-xl py-2 outline-none focus:ring-2 focus:ring-primary-100 text-gray-900"
+                                            className="flex-1 text-center text-xl font-bold bg-transparent outline-none text-gray-900"
                                         />
                                         <button
                                             onClick={() => setStockValue(stockValue + 1)}
-                                            className="w-10 h-10 rounded-xl bg-white border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-all text-gray-500"
+                                            className="w-10 h-10 rounded-lg bg-gray-50 border border-gray-200 flex items-center justify-center hover:bg-gray-100 hover:border-gray-300 transition-all text-gray-500 active:scale-95"
                                         >
-                                            <Plus size={16} />
+                                            <Plus size={16} strokeWidth={2.5} />
                                         </button>
                                     </div>
                                     <button

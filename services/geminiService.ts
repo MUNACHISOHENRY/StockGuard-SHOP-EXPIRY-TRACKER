@@ -2,16 +2,22 @@ import { GoogleGenAI } from "@google/genai";
 import { Category } from '../types';
 
 const getAiClient = () => {
-  const apiKey = process.env.API_KEY;
-  if (!apiKey) {
-    throw new Error("API Key is missing. Please set process.env.API_KEY.");
+  const apiKey = process.env.GEMINI_API_KEY ||
+    process.env.API_KEY ||
+    (import.meta as any).env?.VITE_GEMINI_API_KEY ||
+    (import.meta as any).env?.VITE_API_KEY;
+
+  if (!apiKey || apiKey === 'undefined' || apiKey === '') {
+    console.warn("⚠️ Gemini API Key is missing. Smart Scan features will fail.");
+    throw new Error("API Key is missing. Please set GEMINI_API_KEY in your environment variables.");
   }
+
   return new GoogleGenAI({ apiKey });
 };
 
 export const analyzeProductImage = async (base64Image: string): Promise<{ name: string; category: Category; estimatedDays: number }> => {
   const ai = getAiClient();
-  
+
   // NOTE: gemini-2.5-flash-image (nano banana) does NOT support responseSchema or responseMimeType='application/json'.
   // We must prompt for JSON text and parse it manually.
 
@@ -22,7 +28,7 @@ export const analyzeProductImage = async (base64Image: string): Promise<{ name: 
         parts: [
           {
             inlineData: {
-              mimeType: 'image/jpeg', 
+              mimeType: 'image/jpeg',
               data: base64Image.split(',')[1] // Remove data URL prefix
             }
           },
@@ -38,18 +44,18 @@ export const analyzeProductImage = async (base64Image: string): Promise<{ name: 
         ]
       },
       config: {
-        temperature: 0.4 
+        temperature: 0.4
       }
     });
 
     let text = response.text;
     if (!text) throw new Error("No response from AI");
-    
+
     // Clean up potential markdown code blocks if the model adds them
     text = text.replace(/```json/g, '').replace(/```/g, '').trim();
-    
+
     const data = JSON.parse(text);
-    
+
     return {
       name: data.name || "Unknown Product",
       category: Object.values(Category).includes(data.category) ? data.category as Category : Category.OTHER,
@@ -64,7 +70,7 @@ export const analyzeProductImage = async (base64Image: string): Promise<{ name: 
 
 export const getExpiryAdvice = async (items: { name: string; expiryDate: string; quantity: number }[]): Promise<string> => {
   const ai = getAiClient();
-  
+
   if (items.length === 0) return "No items are expiring soon.";
 
   const prompt = `

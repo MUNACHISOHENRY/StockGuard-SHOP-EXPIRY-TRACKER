@@ -2,17 +2,31 @@ import { initializeApp } from 'firebase/app';
 import { enableIndexedDbPersistence, getFirestore } from 'firebase/firestore';
 
 const firebaseConfig = {
-    apiKey: process.env.FIREBASE_API_KEY,
-    authDomain: process.env.FIREBASE_AUTH_DOMAIN,
-    projectId: process.env.FIREBASE_PROJECT_ID,
-    storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
-    messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID,
-    appId: process.env.FIREBASE_APP_ID,
+    apiKey: process.env.FIREBASE_API_KEY || (import.meta as any).env?.VITE_FIREBASE_API_KEY,
+    authDomain: process.env.FIREBASE_AUTH_DOMAIN || (import.meta as any).env?.VITE_FIREBASE_AUTH_DOMAIN,
+    projectId: process.env.FIREBASE_PROJECT_ID || (import.meta as any).env?.VITE_FIREBASE_PROJECT_ID,
+    storageBucket: process.env.FIREBASE_STORAGE_BUCKET || (import.meta as any).env?.VITE_FIREBASE_STORAGE_BUCKET,
+    messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID || (import.meta as any).env?.VITE_FIREBASE_MESSAGING_SENDER_ID,
+    appId: process.env.FIREBASE_APP_ID || (import.meta as any).env?.VITE_FIREBASE_APP_ID,
 };
 
 // Check if Firebase is configured
 export const isFirebaseConfigured = () => {
-    return !!(firebaseConfig.apiKey && firebaseConfig.projectId && firebaseConfig.apiKey !== 'undefined');
+    const isConfigured = !!(
+        firebaseConfig.apiKey &&
+        firebaseConfig.projectId &&
+        firebaseConfig.apiKey !== 'undefined' &&
+        firebaseConfig.apiKey !== ''
+    );
+
+    if (isConfigured) {
+        console.log("✅ Firebase configuration detected. Cloud sync enabled.");
+    } else {
+        console.warn("⚠️ Firebase configuration missing or incomplete. Falling back to local storage.");
+        console.log("Missing fields:", Object.entries(firebaseConfig).filter(([_, v]) => !v).map(([k]) => k));
+    }
+
+    return isConfigured;
 };
 
 let app: ReturnType<typeof initializeApp> | null = null;
