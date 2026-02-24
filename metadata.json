@@ -1,0 +1,7 @@
+{
+  "name": "StockGuard - Shop Expiry Tracker",
+  "description": "A smart inventory management tool for small shops to track product expiration dates using Gemini AI for visual product recognition and insights.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
