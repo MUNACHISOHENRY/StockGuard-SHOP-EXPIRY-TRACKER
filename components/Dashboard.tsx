@@ -212,7 +212,7 @@ const Dashboard: React.FC<DashboardProps> = ({ products }) => {
                 <StatCard
                     icon={DollarSign}
                     label="Total Value"
-                    value={`$${totalValue.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`}
+                    value={`₦${totalValue.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`}
                     colorTheme="emerald"
                     subValue={`${uniqueCategories} categories`}
                     trend="neutral"

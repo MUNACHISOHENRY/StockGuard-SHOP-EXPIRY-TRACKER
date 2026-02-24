@@ -350,7 +350,7 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({ product, allProducts, o
                                 <p className="text-xs text-gray-400 font-bold uppercase tracking-wider mb-1">Unit Price</p>
                                 {isEditing ? (
                                     <div className="relative">
-                                        <span className="absolute left-0 top-1 text-2xl font-bold text-gray-400">$</span>
+                                        <span className="absolute left-0 top-1 text-2xl font-bold text-gray-400">₦</span>
                                         <input
                                             type="number"
                                             step="0.01"
@@ -361,12 +361,12 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({ product, allProducts, o
                                         />
                                     </div>
                                 ) : (
-                                    <p className="text-3xl font-bold text-gray-900">${product.price?.toFixed(2) || '0.00'}</p>
+                                    <p className="text-3xl font-bold text-gray-900">₦{product.price?.toFixed(2) || '0.00'}</p>
                                 )}
                             </div>
                             <div>
                                 <p className="text-xs text-gray-400 font-bold uppercase tracking-wider mb-1">Total Value</p>
-                                <p className="text-3xl font-bold text-gray-900">${totalValue.toFixed(2)}</p>
+                                <p className="text-3xl font-bold text-gray-900">₦{totalValue.toFixed(2)}</p>
                             </div>
                         </div>
                     </div>

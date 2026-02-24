@@ -338,7 +338,7 @@ const AddItem: React.FC<AddItemProps> = ({ onAdd, onCancel }) => {
                         <div className="grid grid-cols-2 gap-5">
                             <FieldGroup label="Unit Price" icon={DollarSign}>
                                 <div className="relative">
-                                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-sm">$</span>
+                                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-sm">₦</span>
                                     <input
                                         type="number"
                                         name="price"
@@ -532,7 +532,7 @@ const AddItem: React.FC<AddItemProps> = ({ onAdd, onCancel }) => {
                                         <span className="inline-block bg-primary-100 text-primary-700 text-[10px] font-bold px-2.5 py-1 rounded-md uppercase tracking-wider">
                                             {formData.category}
                                         </span>
-                                        <span className="text-xl font-bold text-gray-900">{formData.price ? `$${parseFloat(formData.price).toFixed(2)}` : <span className="text-gray-300 text-sm">No price</span>}</span>
+                                        <span className="text-xl font-bold text-gray-900">{formData.price ? `₦${parseFloat(formData.price).toFixed(2)}` : <span className="text-gray-300 text-sm">No price</span>}</span>
                                     </div>
                                     <h4 className="text-2xl font-bold text-gray-900 mb-1.5">{formData.name || <span className="text-gray-300 italic">Untitled Product</span>}</h4>
                                     <p className="text-gray-500 text-sm line-clamp-2 leading-relaxed">
