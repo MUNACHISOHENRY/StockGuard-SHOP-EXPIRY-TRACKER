@@ -3,7 +3,7 @@
 **Reduce waste, maximize profits.** StockGuard is a smart inventory management platform designed specifically for retail shops to track product expiration dates using AI and real-time cloud synchronization.
 
 <div align="center">
-  <img src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" alt="StockGuard Banner" width="100%" />
+  <img src="./public/assets/logo.png" alt="StockGuard Logo" width="250" />
 </div>
 
 ## ✨ Key Features
