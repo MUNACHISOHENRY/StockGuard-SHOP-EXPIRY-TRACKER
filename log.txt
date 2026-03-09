@@ -1,0 +1,209 @@
+
+Running 6 tests using 1 worker
+
+  ✘  1 [chromium] › tests\core-flows.spec.ts:5:5 › E2E: StockGuard Flows › should add a new product and verify it appears in inventory and dashboard (30.1s)
+  ✘  2 [chromium] › tests\core-flows.spec.ts:5:5 › E2E: StockGuard Flows › should add a new product and verify it appears in inventory and dashboard (retry #1) (30.4s)
+  ✘  3 [chromium] › tests\core-flows.spec.ts:5:5 › E2E: StockGuard Flows › should add a new product and verify it appears in inventory and dashboard (retry #2) (30.1s)
+  ✓  4 [chromium] › tests\core-flows.spec.ts:54:5 › E2E: StockGuard Flows › should allow routing across all pages without crashing (9.9s)
+  ✘  5 [firefox] › tests\core-flows.spec.ts:5:5 › E2E: StockGuard Flows › should add a new product and verify it appears in inventory and dashboard (30.2s)
+  ✘  6 [firefox] › tests\core-flows.spec.ts:5:5 › E2E: StockGuard Flows › should add a new product and verify it appears in inventory and dashboard (retry #1) (13.8s)
+Terminate batch job (Y/N)?   ✘  7 [firefox] › tests\core-flows.spec.ts:5:5 › E2E: StockGuard Flows › should add a new product and verify it appears in inventory and dashboard (retry #2) (9.2s)
+
+
+  1) [chromium] › tests\core-flows.spec.ts:5:5 › E2E: StockGuard Flows › should add a new product and verify it appears in inventory and dashboard 
+
+    [31mTest timeout of 30000ms exceeded.[39m
+
+    Error: locator.click: Test timeout of 30000ms exceeded.
+    Call log:
+    [2m  - waiting for locator('button').filter({ hasText: 'Confirm & Add' }).first()[22m
+    [2m    - locator resolved to <button type="submit" class="flex items-center gap-2 px-7 py-2.5 bg-emerald-600 text-white font-bold text-sm rounded-xl hover:bg-emerald-700 transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-emerald-200 hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] active:shadow-lg">…</button>[22m
+    [2m  - attempting click action[22m
+    [2m    - scrolling into view if needed[22m
+    [2m  - element was detached from the DOM, retrying[22m
+
+
+      40 |
+      41 |         // Submit form
+    > 42 |         await page.locator('button', { hasText: 'Confirm & Add' }).first().click({ force: true });
+         |                                                                            ^
+      43 |
+      44 |         // Implicit wait, should redirect to Inventory automatically and show a toast
+      45 |         await expect(page).toHaveURL(/.*\/inventory$/);
+        at C:\Users\USER\Downloads\stockguard---shop-expiry-tracker\tests\core-flows.spec.ts:42:76
+
+    Error Context: test-results\core-flows-E2E-StockGuard--4c1c8--in-inventory-and-dashboard-chromium\error-context.md
+
+    Retry #1 ───────────────────────────────────────────────────────────────────────────────────────
+
+    [31mTest timeout of 30000ms exceeded.[39m
+
+    Error: locator.click: Test timeout of 30000ms exceeded.
+    Call log:
+    [2m  - waiting for locator('button').filter({ hasText: 'Confirm & Add' }).first()[22m
+
+
+      40 |
+      41 |         // Submit form
+    > 42 |         await page.locator('button', { hasText: 'Confirm & Add' }).first().click({ force: true });
+         |                                                                            ^
+      43 |
+      44 |         // Implicit wait, should redirect to Inventory automatically and show a toast
+      45 |         await expect(page).toHaveURL(/.*\/inventory$/);
+        at C:\Users\USER\Downloads\stockguard---shop-expiry-tracker\tests\core-flows.spec.ts:42:76
+
+    Error Context: test-results\core-flows-E2E-StockGuard--4c1c8--in-inventory-and-dashboard-chromium-retry1\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\core-flows-E2E-StockGuard--4c1c8--in-inventory-and-dashboard-chromium-retry1\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\core-flows-E2E-StockGuard--4c1c8--in-inventory-and-dashboard-chromium-retry1\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Retry #2 ───────────────────────────────────────────────────────────────────────────────────────
+
+    [31mTest timeout of 30000ms exceeded.[39m
+
+    Error: locator.click: Test timeout of 30000ms exceeded.
+    Call log:
+    [2m  - waiting for locator('button').filter({ hasText: 'Confirm & Add' }).first()[22m
+    [2m    - locator resolved to <button type="submit" class="flex items-center gap-2 px-7 py-2.5 bg-emerald-600 text-white font-bold text-sm rounded-xl hover:bg-emerald-700 transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-emerald-200 hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] active:shadow-lg">…</button>[22m
+    [2m  - attempting click action[22m
+    [2m    - scrolling into view if needed[22m
+    [2m  - element was detached from the DOM, retrying[22m
+
+
+      40 |
+      41 |         // Submit form
+    > 42 |         await page.locator('button', { hasText: 'Confirm & Add' }).first().click({ force: true });
+         |                                                                            ^
+      43 |
+      44 |         // Implicit wait, should redirect to Inventory automatically and show a toast
+      45 |         await expect(page).toHaveURL(/.*\/inventory$/);
+        at C:\Users\USER\Downloads\stockguard---shop-expiry-tracker\tests\core-flows.spec.ts:42:76
+
+    Error Context: test-results\core-flows-E2E-StockGuard--4c1c8--in-inventory-and-dashboard-chromium-retry2\error-context.md
+
+  2) [firefox] › tests\core-flows.spec.ts:5:5 › E2E: StockGuard Flows › should add a new product and verify it appears in inventory and dashboard 
+
+    [31mTest timeout of 30000ms exceeded.[39m
+
+    Error: locator.click: Test timeout of 30000ms exceeded.
+    Call log:
+    [2m  - waiting for locator('button').filter({ hasText: 'Confirm & Add' }).first()[22m
+
+
+      40 |
+      41 |         // Submit form
+    > 42 |         await page.locator('button', { hasText: 'Confirm & Add' }).first().click({ force: true });
+         |                                                                            ^
+      43 |
+      44 |         // Implicit wait, should redirect to Inventory automatically and show a toast
+      45 |         await expect(page).toHaveURL(/.*\/inventory$/);
+        at C:\Users\USER\Downloads\stockguard---shop-expiry-tracker\tests\core-flows.spec.ts:42:76
+
+    Error Context: test-results\core-flows-E2E-StockGuard--4c1c8--in-inventory-and-dashboard-firefox\error-context.md
+
+    Retry #1 ───────────────────────────────────────────────────────────────────────────────────────
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: getByText('120', { exact: true }).first()
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 5000ms[22m
+    [2m  - waiting for getByText('120', { exact: true }).first()[22m
+
+
+      37 |         // Step 3 Confirmation Details shouldn't be empty
+      38 |         await expect(page.getByText('Playwright Test Product').first()).toBeVisible();
+    > 39 |         await expect(page.getByText('120', { exact: true }).first()).toBeVisible();
+         |                                                                      ^
+      40 |
+      41 |         // Submit form
+      42 |         await page.locator('button', { hasText: 'Confirm & Add' }).first().click({ force: true });
+        at C:\Users\USER\Downloads\stockguard---shop-expiry-tracker\tests\core-flows.spec.ts:39:70
+
+    Error Context: test-results\core-flows-E2E-StockGuard--4c1c8--in-inventory-and-dashboard-firefox-retry1\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\core-flows-E2E-StockGuard--4c1c8--in-inventory-and-dashboard-firefox-retry1\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\core-flows-E2E-StockGuard--4c1c8--in-inventory-and-dashboard-firefox-retry1\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Retry #2 ───────────────────────────────────────────────────────────────────────────────────────
+
+    Test was interrupted.
+
+    Error: browserContext.close: Test ended.
+    Browser logs:
+
+    <launching> C:\Users\USER\AppData\Local\ms-playwright\firefox-1509\firefox\firefox.exe -no-remote -headless -profile C:\Users\USER\AppData\Local\Temp\playwright_firefoxdev_profile-3cPmsA -juggler-pipe -silent
+    <launched> pid=41808
+    [pid=41808][err] *** You are running in headless mode.
+    [pid=41808][err] JavaScript warning: resource://services-settings/Utils.sys.mjs, line 116: unreachable code after return statement
+    [pid=41808][out] console.warn: services.settings: Ignoring preference override of remote settings server
+    [pid=41808][out] console.warn: services.settings: Allow by setting MOZ_REMOTE_SETTINGS_DEVTOOLS=1 in the environment
+    [pid=41808][out] 
+    [pid=41808][out] Juggler listening to the pipe
+    [pid=41808][out] Crash Annotation GraphicsCriticalError: |[0][GFX1-]: RenderCompositorSWGL failed mapping default framebuffer, no dt (t=31.9132) [GFX1-]: RenderCompositorSWGL failed mapping default framebuffer, no dt
+    [pid=41808][err] JavaScript error: chrome://juggler/content/Helper.js, line 82: NS_ERROR_FAILURE: Component returned failure code: 0x80004005 (NS_ERROR_FAILURE) [nsIWebProgress.removeProgressListener]
+    [pid=41808][out] console.warn: services.settings: #fetchAttachment: Forcing fallbackToDump to false due to Utils.LOAD_DUMPS being false
+    [pid=41808][out] console.error: (new NotFoundError("Could not find fa0fc42c-d91d-fca7-34eb-806ff46062dc in cache or dump", "resource://services-settings/Attachments.sys.mjs", 48))
+    [pid=41808][out] console.warn: "Unable to find the attachment for" "fa0fc42c-d91d-fca7-34eb-806ff46062dc"
+    [pid=41808][out] console.error: services.settings: 
+    [pid=41808][out]   Message: EmptyDatabaseError: "main/nimbus-desktop-experiments" has not been synced yet
+    [pid=41808][out]   Stack:
+    [pid=41808][out]     EmptyDatabaseError@resource://services-settings/Database.sys.mjs:19:5
+    [pid=41808][out] list@resource://services-settings/Database.sys.mjs:96:13
+    [pid=41808][out] 
+    [pid=41808][out] console.error: [Exception... "Component returned failure code: 0x80070057 (NS_ERROR_ILLEGAL_VALUE) [nsIWinTaskbar.getTaskbarProgress]"  nsresult: "0x80070057 (NS_ERROR_ILLEGAL_VALUE)"  location: "JS frame :: moz-src:///browser/components/downloads/DownloadsTaskbar.sys.mjs :: #windowsAttachIndicator :: line 183"  data: no]
+
+    Error: locator.click: Test ended.
+    Browser logs:
+
+    <launching> C:\Users\USER\AppData\Local\ms-playwright\firefox-1509\firefox\firefox.exe -no-remote -headless -profile C:\Users\USER\AppData\Local\Temp\playwright_firefoxdev_profile-3cPmsA -juggler-pipe -silent
+    <launched> pid=41808
+    [pid=41808][err] *** You are running in headless mode.
+    [pid=41808][err] JavaScript warning: resource://services-settings/Utils.sys.mjs, line 116: unreachable code after return statement
+    [pid=41808][out] console.warn: services.settings: Ignoring preference override of remote settings server
+    [pid=41808][out] console.warn: services.settings: Allow by setting MOZ_REMOTE_SETTINGS_DEVTOOLS=1 in the environment
+    [pid=41808][out] 
+    [pid=41808][out] Juggler listening to the pipe
+    [pid=41808][out] Crash Annotation GraphicsCriticalError: |[0][GFX1-]: RenderCompositorSWGL failed mapping default framebuffer, no dt (t=31.9132) [GFX1-]: RenderCompositorSWGL failed mapping default framebuffer, no dt
+    [pid=41808][err] JavaScript error: chrome://juggler/content/Helper.js, line 82: NS_ERROR_FAILURE: Component returned failure code: 0x80004005 (NS_ERROR_FAILURE) [nsIWebProgress.removeProgressListener]
+    [pid=41808][out] console.warn: services.settings: #fetchAttachment: Forcing fallbackToDump to false due to Utils.LOAD_DUMPS being false
+    [pid=41808][out] console.error: (new NotFoundError("Could not find fa0fc42c-d91d-fca7-34eb-806ff46062dc in cache or dump", "resource://services-settings/Attachments.sys.mjs", 48))
+    [pid=41808][out] console.warn: "Unable to find the attachment for" "fa0fc42c-d91d-fca7-34eb-806ff46062dc"
+    [pid=41808][out] console.error: services.settings: 
+    [pid=41808][out]   Message: EmptyDatabaseError: "main/nimbus-desktop-experiments" has not been synced yet
+    [pid=41808][out]   Stack:
+    [pid=41808][out]     EmptyDatabaseError@resource://services-settings/Database.sys.mjs:19:5
+    [pid=41808][out] list@resource://services-settings/Database.sys.mjs:96:13
+    [pid=41808][out] 
+    [pid=41808][out] console.error: [Exception... "Component returned failure code: 0x80070057 (NS_ERROR_ILLEGAL_VALUE) [nsIWinTaskbar.getTaskbarProgress]"  nsresult: "0x80070057 (NS_ERROR_ILLEGAL_VALUE)"  location: "JS frame :: moz-src:///browser/components/downloads/DownloadsTaskbar.sys.mjs :: #windowsAttachIndicator :: line 183"  data: no]
+    Call log:
+    [2m  - waiting for locator('nav button').filter({ hasText: 'Add Item' }).first()[22m
+    [2m    - locator resolved to <button class="group flex items-center gap-3 py-2.5 rounded-xl transition-all w-full text-sm font-medium relative overflow-hidden active:scale-[0.98] text-gray-500 hover:bg-gray-50 hover:text-gray-900 px-4">…</button>[22m
+    [2m  - attempting click action[22m
+    [2m    - waiting for element to be visible, enabled and stable[22m
+    [2m    - element is visible, enabled and stable[22m
+    [2m    - scrolling into view if needed[22m
+
+        at [pid=41808][out]     EmptyDatabaseError@resource://services-settings/Database.sys.mjs:19:5
+        at [pid=41808][out] list@resource://services-settings/Database.sys.mjs:96:13
+        at C:\Users\USER\Downloads\stockguard---shop-expiry-tracker\tests\core-flows.spec.ts:13:75
+
+  2 failed
+    [chromium] › tests\core-flows.spec.ts:5:5 › E2E: StockGuard Flows › should add a new product and verify it appears in inventory and dashboard 
+    [firefox] › tests\core-flows.spec.ts:5:5 › E2E: StockGuard Flows › should add a new product and verify it appears in inventory and dashboard 
+  3 did not run
+  1 passed (3.4m)

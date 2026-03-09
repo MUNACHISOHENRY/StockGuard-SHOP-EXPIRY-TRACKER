@@ -261,7 +261,7 @@ const Dashboard: React.FC<DashboardProps> = ({ products }) => {
                             <button
                                 onClick={fetchAdvice}
                                 disabled={isLoadingAdvice}
-                                className="px-4 py-2 bg-indigo-600 text-white text-sm font-bold rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 flex items-center gap-2 shadow-sm"
+                                className="px-4 py-2 bg-indigo-600 text-white text-sm font-bold rounded-lg hover:bg-indigo-700 transition-all active:scale-95 disabled:opacity-50 flex items-center gap-2 shadow-sm"
                             >
                                 {isLoadingAdvice ? <><Loader2 size={14} className="animate-spin" /> Analyzing...</> : <><Sparkles size={14} /> Get Advice</>}
                             </button>

@@ -1,5 +1,8 @@
+import { zodResolver } from '@hookform/resolvers/zod';
 import { AlertTriangle, ArrowLeft, Calculator, CalendarDays, Camera, Check, ChevronRight, Clock, DollarSign, FileText, Hash, Loader2, MapPin, Minus, Package, Plus, ShieldCheck, Sparkles, X, Zap } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { ProductFormValues, productSchema } from '../schemas/productSchema';
 import { analyzeProductImage } from '../services/geminiService';
 import { Category, Product } from '../types';
 
@@ -14,13 +17,16 @@ type Step = 1 | 2 | 3;
 // ─── Extracted Components (defined outside to prevent focus loss) ───
 const INPUT_CLASS = "w-full p-3.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-100 focus:border-primary-400 outline-none transition-all placeholder:text-gray-300 bg-white text-gray-900 font-medium hover:border-gray-300";
 
-const FieldGroup: React.FC<{ label: string; required?: boolean; icon?: any; children: React.ReactNode }> = ({ label, required, children, icon: Icon }) => (
+const FieldGroup: React.FC<{ label: string; required?: boolean; icon?: any; error?: string; children: React.ReactNode }> = ({ label, required, children, icon: Icon, error }) => (
     <div className="space-y-2">
-        <label className="flex items-center gap-1.5 text-xs font-bold text-gray-500 uppercase tracking-wider ml-0.5">
-            {Icon && <Icon size={12} className="text-gray-400" />}
-            {label}
-            {required && <span className="text-red-400 ml-0.5">*</span>}
-        </label>
+        <div className="flex justify-between items-center">
+            <label className="flex items-center gap-1.5 text-xs font-bold text-gray-500 uppercase tracking-wider ml-0.5">
+                {Icon && <Icon size={12} className="text-gray-400" />}
+                {label}
+                {required && <span className="text-red-400 ml-0.5">*</span>}
+            </label>
+            {error && <span className="text-[10px] font-bold text-red-500 bg-red-50 px-2 py-0.5 rounded">{error}</span>}
+        </div>
         {children}
     </div>
 );
@@ -34,15 +40,11 @@ const STEPS = [
 const StepIndicator: React.FC<{ currentStep: Step }> = ({ currentStep }) => (
     <div className="flex flex-col items-center mb-8 px-4">
         <div className="flex items-center w-full max-w-md relative">
-            {/* Background Line */}
             <div className="absolute top-5 left-[10%] w-[80%] h-0.5 bg-gray-200 -z-10"></div>
-
-            {/* Active Progress Line */}
             <div
                 className="absolute top-5 left-[10%] h-0.5 bg-gradient-to-r from-primary-500 to-primary-600 -z-10 transition-all duration-700 ease-out rounded-full"
                 style={{ width: `${((currentStep - 1) / (STEPS.length - 1)) * 80}%` }}
             ></div>
-
             {STEPS.map((step) => {
                 const isCompleted = currentStep > step.num;
                 const isActive = currentStep === step.num;
@@ -72,25 +74,28 @@ const StepIndicator: React.FC<{ currentStep: Step }> = ({ currentStep }) => (
 const AddItem: React.FC<AddItemProps> = ({ onAdd, onCancel }) => {
     const [currentStep, setCurrentStep] = useState<Step>(1);
 
-    // Form State
-    const [formData, setFormData] = useState({
-        name: '',
-        category: Category.OTHER,
-        description: '',
-        price: '',
-        sku: '',
-        location: '',
-        expiryDate: '',
-        quantity: 1,
-        minStockThreshold: 5
+    // React Hook Form Setup
+    const { register, handleSubmit, watch, setValue, trigger, getValues, formState: { errors } } = useForm<ProductFormValues>({
+        resolver: zodResolver(productSchema),
+        mode: 'onChange',
+        defaultValues: {
+            name: '',
+            category: Category.OTHER,
+            description: '',
+            price: undefined,
+            sku: '',
+            location: '',
+            expiryDate: '',
+            quantity: 1,
+            minStockThreshold: 5
+        }
     });
+
+    const formData = watch();
 
     // Calculation State
     const [expiryMode, setExpiryMode] = useState<ExpiryMode>('manual');
-    const [calcData, setCalcData] = useState({
-        mfgDate: '',
-        shelfLife: ''
-    });
+    const [calcData, setCalcData] = useState({ mfgDate: '', shelfLife: '' });
 
     // Image State
     const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -106,19 +111,10 @@ const AddItem: React.FC<AddItemProps> = ({ onAdd, onCancel }) => {
                 const mfg = new Date(calcData.mfgDate);
                 const expiry = new Date(mfg);
                 expiry.setDate(mfg.getDate() + days);
-
-                setFormData(prev => ({
-                    ...prev,
-                    expiryDate: expiry.toISOString().split('T')[0]
-                }));
+                setValue('expiryDate', expiry.toISOString().split('T')[0], { shouldValidate: true });
             }
         }
-    }, [expiryMode, calcData.mfgDate, calcData.shelfLife]);
-
-    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-        const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: value }));
-    };
+    }, [expiryMode, calcData.mfgDate, calcData.shelfLife, setValue]);
 
     const handleCalcChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
@@ -126,10 +122,8 @@ const AddItem: React.FC<AddItemProps> = ({ onAdd, onCancel }) => {
     };
 
     const adjustQuantity = (delta: number, field: 'quantity' | 'minStockThreshold' = 'quantity') => {
-        setFormData(prev => ({
-            ...prev,
-            [field]: Math.max(0, Number(prev[field]) + delta)
-        }));
+        const current = getValues(field) ?? 0;
+        setValue(field, Math.max(0, current + delta), { shouldValidate: true });
     };
 
     // AI Analysis Logic
@@ -143,13 +137,10 @@ const AddItem: React.FC<AddItemProps> = ({ onAdd, onCancel }) => {
             const estimatedDate = today.toISOString().split('T')[0];
 
             setExpiryMode('manual');
-            setFormData(prev => ({
-                ...prev,
-                name: analysis.name,
-                category: analysis.category,
-                expiryDate: estimatedDate,
-                description: `Automatically detected as ${analysis.name}.`
-            }));
+            setValue('name', analysis.name, { shouldValidate: true });
+            setValue('category', analysis.category as Category, { shouldValidate: true });
+            setValue('expiryDate', estimatedDate, { shouldValidate: true });
+            setValue('description', `Automatically detected as ${analysis.name}.`, { shouldValidate: true });
         } catch (err) {
             console.error("AI Analysis failed", err);
             setAnalysisError("Could not identify the product. Please enter details manually.");
@@ -177,8 +168,18 @@ const AddItem: React.FC<AddItemProps> = ({ onAdd, onCancel }) => {
         if (fileInputRef.current) fileInputRef.current.value = '';
     };
 
-    const nextStep = (e?: React.FormEvent) => {
+    const nextStep = async (e?: React.FormEvent) => {
         if (e) e.preventDefault();
+
+        // Validate specific fields before moving to the next step
+        if (currentStep === 1) {
+            const isStep1Valid = await trigger(['name', 'category', 'price', 'sku', 'location', 'description']);
+            if (!isStep1Valid) return;
+        } else if (currentStep === 2) {
+            const isStep2Valid = await trigger(['quantity', 'minStockThreshold', 'expiryDate']);
+            if (!isStep2Valid) return;
+        }
+
         if (currentStep < 3) setCurrentStep(prev => (prev + 1) as Step);
     };
 
@@ -186,18 +187,18 @@ const AddItem: React.FC<AddItemProps> = ({ onAdd, onCancel }) => {
         if (currentStep > 1) setCurrentStep(prev => (prev - 1) as Step);
     };
 
-    const handleSubmit = () => {
+    const onSubmit = (data: ProductFormValues) => {
         onAdd({
-            name: formData.name,
-            category: formData.category as Category,
-            expiryDate: formData.expiryDate,
-            quantity: Number(formData.quantity),
+            name: data.name,
+            category: data.category as Category,
+            expiryDate: data.expiryDate,
+            quantity: data.quantity,
             imageUrl: imagePreview || undefined,
-            description: formData.description,
-            price: formData.price ? parseFloat(formData.price) : undefined,
-            sku: formData.sku,
-            location: formData.location,
-            minStockThreshold: Number(formData.minStockThreshold)
+            description: data.description,
+            price: data.price,
+            sku: data.sku,
+            location: data.location,
+            minStockThreshold: data.minStockThreshold
         });
     };
 
@@ -211,14 +212,12 @@ const AddItem: React.FC<AddItemProps> = ({ onAdd, onCancel }) => {
         return Math.ceil(diff / (1000 * 3600 * 24));
     };
 
-    const inputClass = INPUT_CLASS;
-
     return (
-        <div className="max-w-2xl mx-auto animate-fade-in pb-12">
+        <form onSubmit={handleSubmit(onSubmit)} className="max-w-2xl mx-auto animate-fade-in pb-12">
             {/* Header */}
             <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-4">
-                    <button onClick={onCancel} className="p-2.5 -ml-2 rounded-xl hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-all">
+                    <button type="button" onClick={onCancel} className="p-2.5 -ml-2 rounded-xl hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-all active:scale-95">
                         <ArrowLeft size={20} />
                     </button>
                     <div>
@@ -254,7 +253,7 @@ const AddItem: React.FC<AddItemProps> = ({ onAdd, onCancel }) => {
                                     </div>
                                     <p className="text-xs text-gray-500 leading-relaxed">Upload a product photo to auto-fill name, category, and estimated shelf life.</p>
                                     <div className="mt-3 flex flex-wrap items-center gap-2.5">
-                                        <label className="cursor-pointer bg-white border border-gray-200 text-gray-700 text-xs font-bold px-4 py-2.5 rounded-lg hover:bg-gray-50 hover:border-gray-300 hover:shadow-sm transition-all flex items-center gap-2 group">
+                                        <label className="cursor-pointer bg-white border border-gray-200 text-gray-700 text-xs font-bold px-4 py-2.5 rounded-lg hover:bg-gray-50 hover:border-gray-300 hover:shadow-sm transition-all flex items-center gap-2 group active:scale-95">
                                             <Camera size={14} className="group-hover:scale-110 transition-transform text-primary-500" /> Choose Photo
                                             <input
                                                 ref={fileInputRef}
@@ -284,7 +283,7 @@ const AddItem: React.FC<AddItemProps> = ({ onAdd, onCancel }) => {
                                 {imagePreview && (
                                     <div className="relative w-20 h-20 rounded-xl bg-white border border-gray-200 overflow-hidden shrink-0 shadow-sm group">
                                         <img src={imagePreview} className="w-full h-full object-cover" alt="Preview" />
-                                        <button onClick={handleRemoveImage} className="absolute inset-0 bg-black/40 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-sm rounded-xl">
+                                        <button type="button" onClick={handleRemoveImage} className="absolute inset-0 bg-black/40 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-sm rounded-xl">
                                             <X size={18} />
                                         </button>
                                     </div>
@@ -293,27 +292,22 @@ const AddItem: React.FC<AddItemProps> = ({ onAdd, onCancel }) => {
                         </div>
 
                         {/* Product Name */}
-                        <FieldGroup label="Product Name" required icon={Package}>
+                        <FieldGroup label="Product Name" required icon={Package} error={errors.name?.message}>
                             <input
                                 type="text"
-                                name="name"
-                                required
-                                className={inputClass}
+                                className={INPUT_CLASS}
                                 placeholder="e.g. Organic Whole Milk 1L"
-                                value={formData.name}
-                                onChange={handleInputChange}
+                                {...register('name')}
                             />
                         </FieldGroup>
 
                         {/* Category + SKU Row */}
                         <div className="grid grid-cols-2 gap-5">
-                            <FieldGroup label="Category" required>
+                            <FieldGroup label="Category" required error={errors.category?.message}>
                                 <div className="relative">
                                     <select
-                                        name="category"
-                                        className={`${inputClass} appearance-none cursor-pointer pr-10`}
-                                        value={formData.category}
-                                        onChange={handleInputChange}
+                                        className={`${INPUT_CLASS} appearance-none cursor-pointer pr-10`}
+                                        {...register('category')}
                                     >
                                         {Object.values(Category).map(c => <option key={c} value={c}>{c}</option>)}
                                     </select>
@@ -322,55 +316,47 @@ const AddItem: React.FC<AddItemProps> = ({ onAdd, onCancel }) => {
                                     </div>
                                 </div>
                             </FieldGroup>
-                            <FieldGroup label="SKU / Barcode" icon={Hash}>
+                            <FieldGroup label="SKU / Barcode" icon={Hash} error={errors.sku?.message}>
                                 <input
                                     type="text"
-                                    name="sku"
-                                    className={inputClass}
+                                    className={INPUT_CLASS}
                                     placeholder="#883921"
-                                    value={formData.sku}
-                                    onChange={handleInputChange}
+                                    {...register('sku')}
                                 />
                             </FieldGroup>
                         </div>
 
                         {/* Price + Location Row */}
                         <div className="grid grid-cols-2 gap-5">
-                            <FieldGroup label="Unit Price" icon={DollarSign}>
+                            <FieldGroup label="Unit Price" icon={DollarSign} error={errors.price?.message}>
                                 <div className="relative">
                                     <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-sm">₦</span>
                                     <input
                                         type="number"
-                                        name="price"
                                         step="0.01"
-                                        className={`${inputClass} pl-8`}
+                                        className={`${INPUT_CLASS} pl-8`}
                                         placeholder="0.00"
-                                        value={formData.price}
-                                        onChange={handleInputChange}
+                                        {...register('price', { setValueAs: v => v === '' || isNaN(parseFloat(v)) ? undefined : parseFloat(v) })}
                                     />
                                 </div>
                             </FieldGroup>
-                            <FieldGroup label="Location" icon={MapPin}>
+                            <FieldGroup label="Location" icon={MapPin} error={errors.location?.message}>
                                 <input
                                     type="text"
-                                    name="location"
-                                    className={inputClass}
+                                    className={INPUT_CLASS}
                                     placeholder="Aisle 3, Shelf B"
-                                    value={formData.location}
-                                    onChange={handleInputChange}
+                                    {...register('location')}
                                 />
                             </FieldGroup>
                         </div>
 
                         {/* Description */}
-                        <FieldGroup label="Description" icon={FileText}>
+                        <FieldGroup label="Description" icon={FileText} error={errors.description?.message}>
                             <textarea
-                                name="description"
                                 rows={2}
-                                className={`${inputClass} resize-none`}
+                                className={`${INPUT_CLASS} resize-none`}
                                 placeholder="Optional product notes..."
-                                value={formData.description}
-                                onChange={handleInputChange}
+                                {...register('description')}
                             />
                         </FieldGroup>
                     </div>
@@ -382,71 +368,74 @@ const AddItem: React.FC<AddItemProps> = ({ onAdd, onCancel }) => {
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             {/* Quantity Control */}
-                            <div className="bg-gray-50/80 rounded-2xl p-5 border border-gray-100">
+                            <div className="bg-gray-50/80 rounded-2xl p-5 border border-gray-100 relative">
                                 <label className="flex items-center gap-1.5 text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">
                                     <Package size={12} className="text-gray-400" />
                                     Initial Stock
                                 </label>
                                 <div className="flex items-center gap-3 bg-white p-2 rounded-xl border border-gray-200 shadow-sm">
-                                    <button onClick={() => adjustQuantity(-1)} className="w-10 h-10 rounded-lg bg-gray-50 border border-gray-200 flex items-center justify-center hover:bg-gray-100 hover:border-gray-300 transition-all text-gray-500 active:scale-95">
+                                    <button type="button" onClick={() => adjustQuantity(-1)} className="w-10 h-10 shrink-0 rounded-lg bg-gray-50 border border-gray-200 flex items-center justify-center hover:bg-gray-100 hover:border-gray-300 transition-all text-gray-500 active:scale-95">
                                         <Minus size={18} strokeWidth={2.5} />
                                     </button>
                                     <input
                                         type="number"
-                                        name="quantity"
-                                        value={formData.quantity}
-                                        onChange={handleInputChange}
                                         className="flex-1 text-center bg-transparent text-2xl font-bold outline-none text-gray-900"
+                                        {...register('quantity', { valueAsNumber: true })}
                                     />
-                                    <button onClick={() => adjustQuantity(1)} className="w-10 h-10 rounded-lg bg-gray-50 border border-gray-200 flex items-center justify-center hover:bg-gray-100 hover:border-gray-300 transition-all text-gray-500 active:scale-95">
+                                    <button type="button" onClick={() => adjustQuantity(1)} className="w-10 h-10 shrink-0 rounded-lg bg-gray-50 border border-gray-200 flex items-center justify-center hover:bg-gray-100 hover:border-gray-300 transition-all text-gray-500 active:scale-95">
                                         <Plus size={18} strokeWidth={2.5} />
                                     </button>
                                 </div>
+                                {errors.quantity && <span className="absolute bottom-1 left-5 text-[10px] text-red-500 font-bold">{errors.quantity.message}</span>}
                             </div>
 
                             {/* Low Stock Threshold */}
-                            <div className="bg-gray-50/80 rounded-2xl p-5 border border-gray-100">
+                            <div className="bg-gray-50/80 rounded-2xl p-5 border border-gray-100 relative">
                                 <label className="flex items-center gap-2 text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">
                                     <AlertTriangle size={12} className="text-gray-400" />
                                     Alert Threshold
                                     <span className="text-[9px] font-bold text-gray-400 bg-gray-200/80 px-1.5 py-0.5 rounded normal-case tracking-normal">Optional</span>
                                 </label>
                                 <div className="flex items-center gap-3 bg-white p-2 rounded-xl border border-gray-200 shadow-sm">
-                                    <button onClick={() => adjustQuantity(-1, 'minStockThreshold')} className="w-10 h-10 rounded-lg bg-gray-50 border border-gray-200 flex items-center justify-center hover:bg-gray-100 hover:border-gray-300 transition-all text-gray-500 active:scale-95">
+                                    <button type="button" onClick={() => adjustQuantity(-1, 'minStockThreshold')} className="w-10 h-10 shrink-0 rounded-lg bg-gray-50 border border-gray-200 flex items-center justify-center hover:bg-gray-100 hover:border-gray-300 transition-all text-gray-500 active:scale-95">
                                         <Minus size={18} strokeWidth={2.5} />
                                     </button>
                                     <input
                                         type="number"
-                                        name="minStockThreshold"
-                                        value={formData.minStockThreshold}
-                                        onChange={handleInputChange}
                                         className="flex-1 text-center bg-transparent text-2xl font-bold outline-none text-gray-900"
+                                        {...register('minStockThreshold', { valueAsNumber: true })}
                                     />
-                                    <button onClick={() => adjustQuantity(1, 'minStockThreshold')} className="w-10 h-10 rounded-lg bg-gray-50 border border-gray-200 flex items-center justify-center hover:bg-gray-100 hover:border-gray-300 transition-all text-gray-500 active:scale-95">
+                                    <button type="button" onClick={() => adjustQuantity(1, 'minStockThreshold')} className="w-10 h-10 shrink-0 rounded-lg bg-gray-50 border border-gray-200 flex items-center justify-center hover:bg-gray-100 hover:border-gray-300 transition-all text-gray-500 active:scale-95">
                                         <Plus size={18} strokeWidth={2.5} />
                                     </button>
                                 </div>
+                                {errors.minStockThreshold && <span className="absolute bottom-1 left-5 text-[10px] text-red-500 font-bold">{errors.minStockThreshold.message}</span>}
                             </div>
                         </div>
 
                         {/* Expiry Date Section */}
                         <div className="space-y-4 pt-2">
-                            <label className="flex items-center gap-1.5 text-xs font-bold text-gray-500 uppercase tracking-wider">
-                                <CalendarDays size={12} className="text-gray-400" />
-                                Expiry Date <span className="text-red-400 ml-0.5">*</span>
-                            </label>
+                            <div className="flex justify-between items-center">
+                                <label className="flex items-center gap-1.5 text-xs font-bold text-gray-500 uppercase tracking-wider">
+                                    <CalendarDays size={12} className="text-gray-400" />
+                                    Expiry Date <span className="text-red-400 ml-0.5">*</span>
+                                </label>
+                                {errors.expiryDate && <span className="text-[10px] text-red-500 font-bold bg-red-50 px-2 py-0.5 rounded">{errors.expiryDate.message}</span>}
+                            </div>
 
                             {/* Mode Toggle */}
                             <div className="flex bg-gray-100 p-1 rounded-xl">
                                 <button
+                                    type="button"
                                     onClick={() => setExpiryMode('manual')}
-                                    className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-bold transition-all ${expiryMode === 'manual' ? 'bg-white text-gray-900 shadow-sm ring-1 ring-gray-200' : 'text-gray-500 hover:text-gray-700'}`}
+                                    className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-bold transition-all active:scale-95 ${expiryMode === 'manual' ? 'bg-white text-gray-900 shadow-sm ring-1 ring-gray-200' : 'text-gray-500 hover:text-gray-700'}`}
                                 >
                                     <CalendarDays size={15} /> Pick Date
                                 </button>
                                 <button
+                                    type="button"
                                     onClick={() => setExpiryMode('calculated')}
-                                    className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-bold transition-all ${expiryMode === 'calculated' ? 'bg-white text-gray-900 shadow-sm ring-1 ring-gray-200' : 'text-gray-500 hover:text-gray-700'}`}
+                                    className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-bold transition-all active:scale-95 ${expiryMode === 'calculated' ? 'bg-white text-gray-900 shadow-sm ring-1 ring-gray-200' : 'text-gray-500 hover:text-gray-700'}`}
                                 >
                                     <Calculator size={15} /> Calculate
                                 </button>
@@ -458,10 +447,8 @@ const AddItem: React.FC<AddItemProps> = ({ onAdd, onCancel }) => {
                                         <p className="text-xs text-gray-400 mb-2">Select the expiry date from the product label.</p>
                                         <input
                                             type="date"
-                                            name="expiryDate"
-                                            value={formData.expiryDate}
-                                            onChange={handleInputChange}
                                             className="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-100 focus:border-primary-400 outline-none font-bold text-gray-900 bg-gray-50 focus:bg-white transition-colors hover:border-gray-300"
+                                            {...register('expiryDate')}
                                         />
                                     </div>
                                 ) : (
@@ -532,7 +519,7 @@ const AddItem: React.FC<AddItemProps> = ({ onAdd, onCancel }) => {
                                         <span className="inline-block bg-primary-100 text-primary-700 text-[10px] font-bold px-2.5 py-1 rounded-md uppercase tracking-wider">
                                             {formData.category}
                                         </span>
-                                        <span className="text-xl font-bold text-gray-900">{formData.price ? `₦${parseFloat(formData.price).toFixed(2)}` : <span className="text-gray-300 text-sm">No price</span>}</span>
+                                        <span className="text-xl font-bold text-gray-900">{formData.price ? `₦${Number(formData.price).toFixed(2)}` : <span className="text-gray-300 text-sm">No price</span>}</span>
                                     </div>
                                     <h4 className="text-2xl font-bold text-gray-900 mb-1.5">{formData.name || <span className="text-gray-300 italic">Untitled Product</span>}</h4>
                                     <p className="text-gray-500 text-sm line-clamp-2 leading-relaxed">
@@ -580,7 +567,7 @@ const AddItem: React.FC<AddItemProps> = ({ onAdd, onCancel }) => {
                         </div>
 
                         {/* Validation Banner */}
-                        {!formData.name || !formData.expiryDate ? (
+                        {Object.keys(errors).length > 0 ? (
                             <div className="bg-red-50 p-4 rounded-xl flex items-center gap-3 text-red-700 text-sm border border-red-100 shadow-sm">
                                 <div className="bg-white p-2 rounded-lg shadow-sm text-red-500 shrink-0">
                                     <AlertTriangle size={16} />
@@ -588,9 +575,7 @@ const AddItem: React.FC<AddItemProps> = ({ onAdd, onCancel }) => {
                                 <div>
                                     <span className="font-bold">Missing required fields.</span>
                                     <span className="text-red-600 ml-1">
-                                        {!formData.name && !formData.expiryDate ? 'Product name and expiry date are required.'
-                                            : !formData.name ? 'Product name is required.'
-                                                : 'Expiry date is required.'}
+                                        Please go back and ensure all required fields are validated.
                                     </span>
                                 </div>
                             </div>
@@ -611,35 +596,34 @@ const AddItem: React.FC<AddItemProps> = ({ onAdd, onCancel }) => {
                 {/* ═══════════════════ Footer Actions ═══════════════════ */}
                 <div className="p-5 md:px-8 border-t border-gray-100 bg-gray-50/50 flex justify-between items-center mt-auto z-10">
                     {currentStep === 1 ? (
-                        <button onClick={onCancel} className="px-5 py-2.5 text-gray-500 font-bold text-sm hover:bg-white hover:text-gray-900 rounded-xl transition-all border border-transparent hover:border-gray-200 hover:shadow-sm">
+                        <button type="button" onClick={onCancel} className="px-5 py-2.5 text-gray-500 font-bold text-sm hover:bg-white hover:text-gray-900 rounded-xl transition-all border border-transparent hover:border-gray-200 hover:shadow-sm active:scale-95">
                             Cancel
                         </button>
                     ) : (
-                        <button onClick={prevStep} className="px-5 py-2.5 text-gray-500 font-bold text-sm hover:bg-white hover:text-gray-900 rounded-xl transition-all border border-transparent hover:border-gray-200 hover:shadow-sm flex items-center gap-1.5">
+                        <button type="button" onClick={prevStep} className="px-5 py-2.5 text-gray-500 font-bold text-sm hover:bg-white hover:text-gray-900 rounded-xl transition-all border border-transparent hover:border-gray-200 hover:shadow-sm flex items-center gap-1.5 active:scale-95">
                             <ArrowLeft size={14} /> Back
                         </button>
                     )}
 
                     {currentStep < 3 ? (
                         <button
+                            type="button"
                             onClick={() => nextStep()}
-                            disabled={currentStep === 1 && !formData.name}
-                            className="flex items-center gap-2 px-7 py-2.5 bg-gray-900 text-white font-bold text-sm rounded-xl hover:bg-gray-800 transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-gray-900/10 hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 active:shadow-lg"
+                            className="flex items-center gap-2 px-7 py-2.5 bg-gray-900 text-white font-bold text-sm rounded-xl hover:bg-gray-800 transition-all shadow-lg shadow-gray-900/10 hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] active:shadow-lg"
                         >
                             Continue <ChevronRight size={16} />
                         </button>
                     ) : (
                         <button
-                            onClick={handleSubmit}
-                            disabled={!formData.name || !formData.expiryDate}
-                            className="flex items-center gap-2 px-7 py-2.5 bg-emerald-600 text-white font-bold text-sm rounded-xl hover:bg-emerald-700 transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-emerald-200 hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 active:shadow-lg"
+                            type="submit"
+                            className="flex items-center gap-2 px-7 py-2.5 bg-emerald-600 text-white font-bold text-sm rounded-xl hover:bg-emerald-700 transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-emerald-200 hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] active:shadow-lg"
                         >
                             <Check size={18} strokeWidth={3} /> Confirm & Add
                         </button>
                     )}
                 </div>
             </div>
-        </div>
+        </form>
     );
 };
 

@@ -1,5 +1,8 @@
-import { AlertTriangle, ArrowLeft, Calendar, CheckCircle, ChevronRight, Clock, Edit, MapPin, Minus, MoreHorizontal, Package, PackageOpen, Plus, RotateCcw, Save, Search, X } from 'lucide-react';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { AlertTriangle, ArrowLeft, Calendar, CheckCircle, ChevronRight, Clock, Edit, MapPin, Package, PackageOpen, Save, Search, X } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { ProductFormValues, productSchema } from '../schemas/productSchema';
 import { Category, CATEGORY_COLORS, Product } from '../types';
 
 interface ProductDetailsProps {
@@ -19,33 +22,41 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({ product, allProducts, o
 
     // Edit mode state
     const [isEditing, setIsEditing] = useState(false);
-    const [editData, setEditData] = useState({
-        name: product.name,
-        description: product.description || '',
-        price: product.price?.toString() || '',
-        sku: product.sku || '',
-        location: product.location || '',
-        category: product.category,
-    });
 
-    // Stock update modal
-    const [showStockUpdate, setShowStockUpdate] = useState(false);
-    const [stockValue, setStockValue] = useState(product.quantity);
-
-    // Sync edit data when product changes
-    useEffect(() => {
-        setEditData({
+    // React Hook Form for Edit Mode
+    const { register, handleSubmit, reset, watch, formState: { errors } } = useForm<ProductFormValues>({
+        resolver: zodResolver(productSchema),
+        defaultValues: {
             name: product.name,
+            category: product.category,
             description: product.description || '',
-            price: product.price?.toString() || '',
+            price: product.price,
             sku: product.sku || '',
             location: product.location || '',
+            expiryDate: product.expiryDate,
+            quantity: product.quantity,
+            minStockThreshold: product.minStockThreshold,
+        }
+    });
+
+    const formQuantity = watch('quantity');
+    const formPrice = watch('price');
+
+    // Sync edit data when product changes or edit mode toggles
+    useEffect(() => {
+        reset({
+            name: product.name,
             category: product.category,
+            description: product.description || '',
+            price: product.price,
+            sku: product.sku || '',
+            location: product.location || '',
+            expiryDate: product.expiryDate,
+            quantity: product.quantity,
+            minStockThreshold: product.minStockThreshold,
         });
-        setStockValue(product.quantity);
         setIsEditing(false);
-        setShowStockUpdate(false);
-    }, [product]);
+    }, [product, reset]);
 
     // Close search on click outside
     useEffect(() => {
@@ -94,7 +105,9 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({ product, allProducts, o
     };
 
     const daysLeft = getDaysUntilExpiry(product.expiryDate);
-    const totalValue = (product.price || 0) * product.quantity;
+    const activePrice = isEditing ? (formPrice || 0) : (product.price || 0);
+    const activeQuantity = isEditing ? (formQuantity || 0) : product.quantity;
+    const totalValue = activePrice * activeQuantity;
 
     const getStatusInfo = (days: number) => {
         if (days < 0) return { label: 'Expired', color: 'bg-red-50 text-red-700 border-red-100', icon: AlertTriangle };
@@ -127,22 +140,23 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({ product, allProducts, o
         return notes.join('\n');
     };
 
-    const handleSaveEdit = () => {
+    const onSaveEdit = (data: ProductFormValues) => {
         onUpdateProduct({
             ...product,
-            name: editData.name,
-            description: editData.description || undefined,
-            price: editData.price ? parseFloat(editData.price) : undefined,
-            sku: editData.sku || undefined,
-            location: editData.location || undefined,
-            category: editData.category,
+            name: data.name,
+            description: data.description || undefined,
+            price: data.price,
+            sku: data.sku || undefined,
+            location: data.location || undefined,
+            category: data.category as Category,
+            quantity: data.quantity,
+            minStockThreshold: data.minStockThreshold,
         });
-        setIsEditing(false);
-    };
 
-    const handleSaveStock = () => {
-        onUpdateQuantity(product.id, stockValue);
-        setShowStockUpdate(false);
+        if (data.quantity !== product.quantity) {
+            onUpdateQuantity(product.id, data.quantity);
+        }
+        setIsEditing(false);
     };
 
     return (
@@ -151,8 +165,9 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({ product, allProducts, o
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
                     <button
+                        type="button"
                         onClick={onBack}
-                        className="p-2.5 bg-white border border-gray-200 hover:bg-gray-50 rounded-xl text-gray-500 transition-colors shadow-sm"
+                        className="p-2.5 bg-white border border-gray-200 hover:bg-gray-50 rounded-xl text-gray-500 transition-all shadow-sm active:scale-95 hover:text-gray-900"
                     >
                         <ArrowLeft size={18} />
                     </button>
@@ -178,6 +193,7 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({ product, allProducts, o
                         />
                         {searchTerm && (
                             <button
+                                type="button"
                                 onClick={() => { setSearchTerm(''); setShowResults(false); }}
                                 className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                             >
@@ -197,6 +213,7 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({ product, allProducts, o
                                     {searchResults.map(p => (
                                         <button
                                             key={p.id}
+                                            type="button"
                                             onClick={() => handleSelectSearchResult(p)}
                                             className="w-full text-left px-4 py-3 hover:bg-gray-50 flex items-center gap-3 transition-colors border-l-2 border-transparent hover:border-primary-500"
                                         >
@@ -231,7 +248,7 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({ product, allProducts, o
             </div>
 
             {/* Hero Section */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+            <form id="product-edit-form" onSubmit={handleSubmit(onSaveEdit)} className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden relative">
                 <div className="flex flex-col md:flex-row">
                     {/* Image */}
                     <div className="w-full md:w-96 h-80 bg-gray-50 border-r border-gray-100 relative group">
@@ -251,12 +268,11 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({ product, allProducts, o
                     {/* Content */}
                     <div className="flex-1 p-8 flex flex-col">
                         <div className="flex justify-between items-start mb-6">
-                            <div>
+                            <div className="flex-1 pr-4">
                                 <div className="flex items-center gap-3 mb-2">
                                     {isEditing ? (
                                         <select
-                                            value={editData.category}
-                                            onChange={(e) => setEditData(prev => ({ ...prev, category: e.target.value as Category }))}
+                                            {...register('category')}
                                             className="px-2.5 py-1 rounded-md text-xs font-bold border border-primary-300 bg-primary-50 text-primary-700 outline-none"
                                         >
                                             {Object.values(Category).map(c => <option key={c} value={c}>{c}</option>)}
@@ -269,8 +285,7 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({ product, allProducts, o
                                     {isEditing ? (
                                         <input
                                             type="text"
-                                            value={editData.sku}
-                                            onChange={(e) => setEditData(prev => ({ ...prev, sku: e.target.value }))}
+                                            {...register('sku')}
                                             placeholder="SKU"
                                             className="text-xs text-gray-500 font-mono bg-gray-100 px-2 py-1 rounded-md border border-gray-300 outline-none w-32"
                                         />
@@ -283,12 +298,14 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({ product, allProducts, o
                                     )}
                                 </div>
                                 {isEditing ? (
-                                    <input
-                                        type="text"
-                                        value={editData.name}
-                                        onChange={(e) => setEditData(prev => ({ ...prev, name: e.target.value }))}
-                                        className="text-3xl font-bold text-gray-900 border-b-2 border-primary-300 outline-none bg-transparent w-full pb-1"
-                                    />
+                                    <div className="space-y-1">
+                                        <input
+                                            type="text"
+                                            {...register('name')}
+                                            className={`text-3xl font-bold text-gray-900 border-b-2 outline-none bg-transparent w-full pb-1 ${errors.name ? 'border-red-400' : 'border-primary-300'}`}
+                                        />
+                                        {errors.name && <p className="text-red-500 text-xs font-bold">{errors.name.message}</p>}
+                                    </div>
                                 ) : (
                                     <h2 className="text-3xl font-bold text-gray-900">{product.name}</h2>
                                 )}
@@ -297,14 +314,15 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({ product, allProducts, o
                                 {isEditing ? (
                                     <>
                                         <button
-                                            onClick={() => setIsEditing(false)}
-                                            className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors"
+                                            type="button"
+                                            onClick={() => { reset(); setIsEditing(false); }}
+                                            className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-all active:scale-95"
                                         >
                                             <X size={20} />
                                         </button>
                                         <button
-                                            onClick={handleSaveEdit}
-                                            className="p-2 text-emerald-600 hover:text-emerald-700 rounded-lg hover:bg-emerald-50 transition-colors"
+                                            type="submit"
+                                            className="p-2 text-emerald-600 hover:text-emerald-700 rounded-lg hover:bg-emerald-50 transition-all active:scale-95"
                                         >
                                             <Save size={20} />
                                         </button>
@@ -312,13 +330,11 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({ product, allProducts, o
                                 ) : (
                                     <>
                                         <button
+                                            type="button"
                                             onClick={() => setIsEditing(true)}
-                                            className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors"
+                                            className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-all active:scale-95"
                                         >
                                             <Edit size={20} />
-                                        </button>
-                                        <button className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors">
-                                            <MoreHorizontal size={20} />
                                         </button>
                                     </>
                                 )}
@@ -328,8 +344,7 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({ product, allProducts, o
                         <div className="flex-1">
                             {isEditing ? (
                                 <textarea
-                                    value={editData.description}
-                                    onChange={(e) => setEditData(prev => ({ ...prev, description: e.target.value }))}
+                                    {...register('description')}
                                     placeholder="Add a description..."
                                     rows={3}
                                     className="text-gray-600 leading-relaxed w-full border border-gray-200 rounded-xl p-3 outline-none focus:ring-2 focus:ring-primary-100 focus:border-primary-400 resize-none"
@@ -341,24 +356,36 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({ product, allProducts, o
                             )}
                         </div>
 
-                        <div className="grid grid-cols-3 gap-8 pt-8 mt-8 border-t border-gray-100">
+                        <div className="grid grid-cols-3 gap-8 pt-8 mt-8 border-t border-gray-100 relative">
                             <div>
                                 <p className="text-xs text-gray-400 font-bold uppercase tracking-wider mb-1">Stock Level</p>
-                                <p className="text-3xl font-bold text-gray-900">{product.quantity}</p>
+                                {isEditing ? (
+                                    <div className="space-y-1">
+                                        <input
+                                            type="number"
+                                            {...register('quantity', { valueAsNumber: true })}
+                                            className="text-3xl font-bold text-gray-900 border-b-2 border-primary-300 outline-none bg-transparent w-full pb-1"
+                                        />
+                                        {errors.quantity && <p className="text-red-500 text-[10px] font-bold absolute -bottom-4">{errors.quantity.message}</p>}
+                                    </div>
+                                ) : (
+                                    <p className="text-3xl font-bold text-gray-900">{product.quantity}</p>
+                                )}
                             </div>
                             <div>
                                 <p className="text-xs text-gray-400 font-bold uppercase tracking-wider mb-1">Unit Price</p>
                                 {isEditing ? (
-                                    <div className="relative">
-                                        <span className="absolute left-0 top-1 text-2xl font-bold text-gray-400">₦</span>
-                                        <input
-                                            type="number"
-                                            step="0.01"
-                                            value={editData.price}
-                                            onChange={(e) => setEditData(prev => ({ ...prev, price: e.target.value }))}
-                                            className="text-3xl font-bold text-gray-900 border-b-2 border-primary-300 outline-none bg-transparent w-full pl-5 pb-1"
-                                            placeholder="0.00"
-                                        />
+                                    <div className="space-y-1">
+                                        <div className="relative">
+                                            <span className="absolute left-0 top-1 text-2xl font-bold text-gray-400">₦</span>
+                                            <input
+                                                type="number"
+                                                step="0.01"
+                                                {...register('price', { setValueAs: v => v === '' || isNaN(parseFloat(v)) ? undefined : parseFloat(v) })}
+                                                className="text-3xl font-bold text-gray-900 border-b-2 border-primary-300 outline-none bg-transparent w-full pl-5 pb-1"
+                                                placeholder="0.00"
+                                            />
+                                        </div>
                                     </div>
                                 ) : (
                                     <p className="text-3xl font-bold text-gray-900">₦{product.price?.toFixed(2) || '0.00'}</p>
@@ -371,7 +398,7 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({ product, allProducts, o
                         </div>
                     </div>
                 </div>
-            </div>
+            </form>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Left Column: Details */}
@@ -384,9 +411,9 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({ product, allProducts, o
                                 {isEditing ? (
                                     <input
                                         type="text"
-                                        value={editData.location}
-                                        onChange={(e) => setEditData(prev => ({ ...prev, location: e.target.value }))}
+                                        {...register('location')}
                                         placeholder="e.g. Aisle 3, Shelf B"
+                                        form="product-edit-form"
                                         className="flex items-center gap-2 text-gray-900 font-medium border border-gray-200 rounded-lg p-2 outline-none focus:ring-2 focus:ring-primary-100 w-full"
                                     />
                                 ) : (
@@ -430,63 +457,6 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({ product, allProducts, o
                                 <span className="text-gray-500">Expires on</span>
                                 <span className="font-bold text-gray-900">{new Date(product.expiryDate).toLocaleDateString()}</span>
                             </div>
-                        </div>
-                    </div>
-
-                    <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-                        <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">Quick Actions</h3>
-                        <div className="space-y-2">
-                            <button
-                                onClick={() => setIsEditing(!isEditing)}
-                                className={`w-full flex items-center gap-3 px-4 py-3 border rounded-xl font-bold text-sm transition-all shadow-sm ${isEditing
-                                    ? 'border-primary-200 text-primary-700 bg-primary-50 hover:bg-primary-100'
-                                    : 'border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300'
-                                    }`}
-                            >
-                                <Edit size={16} /> {isEditing ? 'Editing...' : 'Edit Details'}
-                            </button>
-                            <button
-                                onClick={() => setShowStockUpdate(!showStockUpdate)}
-                                className={`w-full flex items-center gap-3 px-4 py-3 border rounded-xl font-bold text-sm transition-all shadow-sm ${showStockUpdate
-                                    ? 'border-primary-200 text-primary-700 bg-primary-50 hover:bg-primary-100'
-                                    : 'border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300'
-                                    }`}
-                            >
-                                <RotateCcw size={16} /> Update Stock
-                            </button>
-
-                            {/* Inline Stock Updater */}
-                            {showStockUpdate && (
-                                <div className="bg-gray-50 rounded-xl p-4 border border-gray-200 space-y-3 animate-fade-in">
-                                    <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Set new stock level</p>
-                                    <div className="flex items-center gap-3 bg-white p-2 rounded-xl border border-gray-200 shadow-sm">
-                                        <button
-                                            onClick={() => setStockValue(Math.max(0, stockValue - 1))}
-                                            className="w-10 h-10 rounded-lg bg-gray-50 border border-gray-200 flex items-center justify-center hover:bg-gray-100 hover:border-gray-300 transition-all text-gray-500 active:scale-95"
-                                        >
-                                            <Minus size={16} strokeWidth={2.5} />
-                                        </button>
-                                        <input
-                                            type="number"
-                                            value={stockValue}
-                                            onChange={(e) => setStockValue(Math.max(0, parseInt(e.target.value) || 0))}
-                                            className="flex-1 text-center text-xl font-bold bg-transparent outline-none text-gray-900"
-                                        />
-                                        <button
-                                            onClick={() => setStockValue(stockValue + 1)}
-                                            className="w-10 h-10 rounded-lg bg-gray-50 border border-gray-200 flex items-center justify-center hover:bg-gray-100 hover:border-gray-300 transition-all text-gray-500 active:scale-95"
-                                        >
-                                            <Plus size={16} strokeWidth={2.5} />
-                                        </button>
-                                    </div>
-                                    <button
-                                        onClick={handleSaveStock}
-                                        className="w-full py-2.5 bg-primary-600 text-white text-sm font-bold rounded-lg hover:bg-primary-700 transition-colors shadow-sm"
-                                    >
-                                        Save Stock ({stockValue})
-                                    </button>
-                                </div>
-                            )}
                         </div>
                     </div>
                 </div>

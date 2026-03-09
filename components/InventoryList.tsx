@@ -1,5 +1,6 @@
 import { AlertTriangle, ArrowUpDown, Calendar, ChevronDown, ChevronRight, Download, Filter, Minus, MoreHorizontal, Plus, Search, Trash2, X } from 'lucide-react';
 import React, { useMemo, useState } from 'react';
+import { TableVirtuoso, Virtuoso } from 'react-virtuoso';
 import { CATEGORY_COLORS, CATEGORY_DOT_COLORS, Category, Product } from '../types';
 
 interface InventoryListProps {
@@ -138,14 +139,14 @@ const InventoryList: React.FC<InventoryListProps> = ({ products, onDelete, onUpd
                     <div className="flex gap-3">
                         <button
                             onClick={handleExportCSV}
-                            className="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-gray-600 hover:bg-gray-50 hover:text-gray-900 hover:border-gray-300 shadow-sm transition-all text-sm font-semibold"
+                            className="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-gray-600 hover:bg-gray-50 hover:text-gray-900 hover:border-gray-300 shadow-sm transition-all text-sm font-semibold active:scale-[0.98] active:bg-gray-100"
                         >
                             <Download size={16} />
                             Export
                         </button>
                         <button
                             onClick={onAddItem}
-                            className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary-600 border border-primary-600 rounded-xl text-white hover:bg-primary-700 shadow-lg shadow-primary-600/20 transition-all text-sm font-bold hover:-translate-y-0.5 active:translate-y-0"
+                            className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary-600 border border-primary-600 rounded-xl text-white hover:bg-primary-700 shadow-lg shadow-primary-600/20 transition-all text-sm font-bold hover:-translate-y-0.5 active:translate-y-0 active:scale-95"
                         >
                             <Plus size={16} />
                             Add Item
@@ -253,189 +254,192 @@ const InventoryList: React.FC<InventoryListProps> = ({ products, onDelete, onUpd
                         </p>
                         <button
                             onClick={clearFilters}
-                            className="px-6 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-xl font-semibold hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm"
+                            className="px-6 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-xl font-semibold hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm active:scale-95"
                         >
                             Clear Filters
                         </button>
                     </div>
                 ) : (
                     <>
-                        {/* Desktop View */}
-                        <div className="hidden md:block overflow-x-auto">
-                            <table className="w-full text-left border-collapse">
-                                <thead className="bg-gray-50/80 backdrop-blur border-b border-gray-100 text-gray-500 text-xs uppercase tracking-wider font-bold">
+                        {/* Desktop View Virtualized Table */}
+                        <div className="hidden md:block h-[600px] w-full">
+                            <TableVirtuoso
+                                data={filteredProducts}
+                                components={{
+                                    Table: (props) => <table {...props} className="w-full text-left border-collapse" />,
+                                    TableHead: React.forwardRef((props, ref) => <thead {...props} ref={ref} className="bg-gray-50/80 backdrop-blur border-b border-gray-100 text-gray-500 text-xs uppercase tracking-wider font-bold" />),
+                                    TableRow: (props) => <tr {...props} className="group transition-all duration-200 cursor-pointer row-hover outline-none border-b border-gray-100 last:border-0" />,
+                                    TableBody: React.forwardRef((props, ref) => <tbody {...props} ref={ref} className="bg-white" />),
+                                }}
+                                fixedHeaderContent={() => (
                                     <tr>
-                                        <th className="px-6 py-5 pl-8">Product</th>
-                                        <th className="px-6 py-5">Category</th>
-                                        <th className="px-6 py-5">Expiry Status</th>
-                                        <th className="px-6 py-5 text-center">Stock</th>
-                                        <th className="px-6 py-5 text-right pr-8">Actions</th>
+                                        <th className="px-6 py-5 pl-8 bg-gray-50/95 sticky top-0 z-10 w-[30%]">Product</th>
+                                        <th className="px-6 py-5 bg-gray-50/95 sticky top-0 z-10 w-[20%]">Category</th>
+                                        <th className="px-6 py-5 bg-gray-50/95 sticky top-0 z-10 w-[20%]">Expiry Status</th>
+                                        <th className="px-6 py-5 text-center bg-gray-50/95 sticky top-0 z-10 w-[15%]">Stock</th>
+                                        <th className="px-6 py-5 text-right pr-8 bg-gray-50/95 sticky top-0 z-10 w-[15%]">Actions</th>
                                     </tr>
-                                </thead>
-                                <tbody className="divide-y divide-gray-100">
-                                    {filteredProducts.map(product => {
-                                        const daysLeft = getDaysUntilExpiry(product.expiryDate);
-                                        const lowStock = isLowStock(product);
-                                        const isExpired = daysLeft < 0;
+                                )}
+                                itemContent={(index, product) => {
+                                    const daysLeft = getDaysUntilExpiry(product.expiryDate);
+                                    const lowStock = isLowStock(product);
+                                    const isExpired = daysLeft < 0;
 
-                                        return (
-                                            <tr
-                                                key={product.id}
-                                                className={`group transition-all duration-200 cursor-pointer row-hover ${isExpired ? 'bg-red-50/30' : ''}`}
-                                                onClick={() => onSelectProduct(product)}
-                                            >
-                                                <td className="px-6 py-4 pl-8">
-                                                    <div className="flex items-center gap-4">
-                                                        <div className="w-12 h-12 rounded-xl bg-gray-100 flex items-center justify-center text-gray-400 font-bold text-lg border border-gray-200 shadow-sm shrink-0 overflow-hidden">
-                                                            {product.imageUrl ? (
-                                                                <img src={product.imageUrl} alt="" className="w-full h-full object-cover" />
-                                                            ) : (
-                                                                product.name.charAt(0)
-                                                            )}
-                                                        </div>
-                                                        <div>
-                                                            <p className="font-bold text-gray-900 text-sm group-hover:text-primary-700 transition-colors">{product.name}</p>
-                                                            <p className="text-xs text-gray-500 mt-0.5 flex items-center gap-1.5 font-medium">
-                                                                <span className="w-1 h-1 rounded-full bg-gray-300"></span>
-                                                                SKU: {product.sku || 'N/A'}
-                                                            </p>
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold ${CATEGORY_COLORS[product.category]}`}>
-                                                        <span className={`w-1.5 h-1.5 rounded-full mr-2 ${CATEGORY_DOT_COLORS[product.category]}`}></span>
-                                                        {product.category}
-                                                    </span>
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    <div className="flex flex-col items-start gap-1.5">
-                                                        <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border shadow-sm ${getStatusColor(daysLeft)}`}>
-                                                            {daysLeft < 0 ? <AlertTriangle size={12} strokeWidth={2.5} /> : <Calendar size={12} strokeWidth={2.5} />}
-                                                            {getStatusText(daysLeft)}
-                                                        </div>
-                                                        <span className="text-xs text-gray-400 font-medium pl-1">
-                                                            {new Date(product.expiryDate).toLocaleDateString()}
-                                                        </span>
-                                                    </div>
-                                                </td>
-                                                <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
-                                                    <div className="flex flex-col items-center gap-2">
-                                                        <div className="flex items-center justify-center gap-1 bg-white border border-gray-200 rounded-lg p-1 shadow-sm">
-                                                            <button
-                                                                onClick={() => onUpdateQuantity(product.id, Math.max(0, product.quantity - 1))}
-                                                                className="w-6 h-6 rounded border border-transparent hover:border-gray-200 text-gray-400 hover:bg-gray-50 hover:text-gray-900 flex items-center justify-center transition-all disabled:opacity-50"
-                                                                disabled={product.quantity <= 0}
-                                                            >
-                                                                <Minus size={12} strokeWidth={2.5} />
-                                                            </button>
-                                                            <span className="w-8 text-center font-bold text-gray-900 text-sm">{product.quantity}</span>
-                                                            <button
-                                                                onClick={() => onUpdateQuantity(product.id, product.quantity + 1)}
-                                                                className="w-6 h-6 rounded border border-transparent hover:border-gray-200 text-gray-400 hover:bg-gray-50 hover:text-gray-900 flex items-center justify-center transition-all"
-                                                            >
-                                                                <Plus size={12} strokeWidth={2.5} />
-                                                            </button>
-                                                        </div>
-                                                        {lowStock && (
-                                                            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-orange-600 bg-orange-50 px-1.5 py-0.5 rounded border border-orange-100">
-                                                                Low Stock
-                                                            </span>
+                                    return (
+                                        <>
+                                            <td className={`px-6 py-4 pl-8 ${isExpired ? 'bg-red-50/30' : ''}`} onClick={() => onSelectProduct(product)}>
+                                                <div className="flex items-center gap-4">
+                                                    <div className="w-12 h-12 rounded-xl bg-gray-100 flex items-center justify-center text-gray-400 font-bold text-lg border border-gray-200 shadow-sm shrink-0 overflow-hidden">
+                                                        {product.imageUrl ? (
+                                                            <img src={product.imageUrl} alt="" className="w-full h-full object-cover" />
+                                                        ) : (
+                                                            product.name.charAt(0)
                                                         )}
                                                     </div>
-                                                </td>
-                                                <td className="px-6 py-4 text-right pr-8" onClick={(e) => e.stopPropagation()}>
-                                                    <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    <div>
+                                                        <p className="font-bold text-gray-900 text-sm group-hover:text-primary-700 transition-colors">{product.name}</p>
+                                                        <p className="text-xs text-gray-500 mt-0.5 flex items-center gap-1.5 font-medium">
+                                                            <span className="w-1 h-1 rounded-full bg-gray-300"></span>
+                                                            SKU: {product.sku || 'N/A'}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td className={`px-6 py-4 ${isExpired ? 'bg-red-50/30' : ''}`} onClick={() => onSelectProduct(product)}>
+                                                <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold ${CATEGORY_COLORS[product.category]}`}>
+                                                    <span className={`w-1.5 h-1.5 rounded-full mr-2 ${CATEGORY_DOT_COLORS[product.category]}`}></span>
+                                                    {product.category}
+                                                </span>
+                                            </td>
+                                            <td className={`px-6 py-4 ${isExpired ? 'bg-red-50/30' : ''}`} onClick={() => onSelectProduct(product)}>
+                                                <div className="flex flex-col items-start gap-1.5">
+                                                    <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border shadow-sm ${getStatusColor(daysLeft)}`}>
+                                                        {daysLeft < 0 ? <AlertTriangle size={12} strokeWidth={2.5} /> : <Calendar size={12} strokeWidth={2.5} />}
+                                                        {getStatusText(daysLeft)}
+                                                    </div>
+                                                    <span className="text-xs text-gray-400 font-medium pl-1">
+                                                        {new Date(product.expiryDate).toLocaleDateString()}
+                                                    </span>
+                                                </div>
+                                            </td>
+                                            <td className={`px-6 py-4 ${isExpired ? 'bg-red-50/30' : ''}`} onClick={(e) => e.stopPropagation()}>
+                                                <div className="flex flex-col items-center gap-2">
+                                                    <div className="flex items-center justify-center gap-1 bg-white border border-gray-200 rounded-lg p-1 shadow-sm">
                                                         <button
-                                                            onClick={() => onSelectProduct(product)}
-                                                            className="p-2 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-all"
-                                                            title="View Details"
+                                                            onClick={() => onUpdateQuantity(product.id, Math.max(0, product.quantity - 1))}
+                                                            className="w-6 h-6 rounded border border-transparent hover:border-gray-200 text-gray-400 hover:bg-gray-50 hover:text-gray-900 flex items-center justify-center transition-all disabled:opacity-50"
+                                                            disabled={product.quantity <= 0}
                                                         >
-                                                            <ChevronRight size={18} />
+                                                            <Minus size={12} strokeWidth={2.5} />
                                                         </button>
+                                                        <span className="w-8 text-center font-bold text-gray-900 text-sm">{product.quantity}</span>
                                                         <button
-                                                            onClick={() => onDelete(product.id)}
-                                                            className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
-                                                            title="Delete Item"
+                                                            onClick={() => onUpdateQuantity(product.id, product.quantity + 1)}
+                                                            className="w-6 h-6 rounded border border-transparent hover:border-gray-200 text-gray-400 hover:bg-gray-50 hover:text-gray-900 flex items-center justify-center transition-all"
                                                         >
-                                                            <Trash2 size={18} />
+                                                            <Plus size={12} strokeWidth={2.5} />
                                                         </button>
                                                     </div>
-                                                </td>
-                                            </tr>
-                                        );
-                                    })}
-                                </tbody>
-                            </table>
-                        </div>
-
-                        {/* Mobile View (Cards) */}
-                        <div className="md:hidden divide-y divide-gray-100">
-                            {filteredProducts.map(product => {
-                                const daysLeft = getDaysUntilExpiry(product.expiryDate);
-                                const lowStock = isLowStock(product);
-                                return (
-                                    <div
-                                        key={product.id}
-                                        className="p-5 space-y-4 cursor-pointer hover:bg-gray-50 active:bg-gray-100 transition-colors"
-                                        onClick={() => onSelectProduct(product)}
-                                    >
-                                        <div className="flex items-start justify-between">
-                                            <div className="flex items-center gap-4">
-                                                <div className="w-14 h-14 rounded-xl bg-gray-100 flex items-center justify-center text-gray-400 font-bold border border-gray-200 shadow-sm shrink-0 overflow-hidden">
-                                                    {product.imageUrl ? (
-                                                        <img src={product.imageUrl} alt="" className="w-full h-full object-cover" />
-                                                    ) : (
-                                                        product.name.charAt(0)
+                                                    {lowStock && (
+                                                        <span className="inline-flex items-center gap-1 text-[10px] font-bold text-orange-600 bg-orange-50 px-1.5 py-0.5 rounded border border-orange-100">
+                                                            Low Stock
+                                                        </span>
                                                     )}
                                                 </div>
-                                                <div>
-                                                    <h3 className="font-bold text-gray-900 text-base">{product.name}</h3>
-                                                    <div className="flex items-center gap-2 mt-1.5">
-                                                        <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold ${CATEGORY_COLORS[product.category]}`}>
-                                                            {product.category}
-                                                        </span>
+                                            </td>
+                                            <td className={`px-6 py-4 text-right pr-8 ${isExpired ? 'bg-red-50/30' : ''}`} onClick={(e) => e.stopPropagation()}>
+                                                <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    <button
+                                                        onClick={() => onSelectProduct(product)}
+                                                        className="p-2 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-all active:scale-95"
+                                                        title="View Details"
+                                                    >
+                                                        <ChevronRight size={18} />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => onDelete(product.id)}
+                                                        className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all active:scale-95"
+                                                        title="Delete Item"
+                                                    >
+                                                        <Trash2 size={18} />
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </>
+                                    );
+                                }}
+                            />
+                        </div>
+
+                        {/* Mobile View Virtualized Cards */}
+                        <div className="md:hidden h-[600px] w-full">
+                            <Virtuoso
+                                data={filteredProducts}
+                                itemContent={(index, product) => {
+                                    const daysLeft = getDaysUntilExpiry(product.expiryDate);
+                                    return (
+                                        <div
+                                            key={product.id}
+                                            className="p-5 border-b border-gray-100 space-y-4 cursor-pointer hover:bg-gray-50 active:bg-gray-100 transition-colors"
+                                            onClick={() => onSelectProduct(product)}
+                                        >
+                                            <div className="flex items-start justify-between">
+                                                <div className="flex items-center gap-4">
+                                                    <div className="w-14 h-14 rounded-xl bg-gray-100 flex items-center justify-center text-gray-400 font-bold border border-gray-200 shadow-sm shrink-0 overflow-hidden">
+                                                        {product.imageUrl ? (
+                                                            <img src={product.imageUrl} alt="" className="w-full h-full object-cover" />
+                                                        ) : (
+                                                            product.name.charAt(0)
+                                                        )}
+                                                    </div>
+                                                    <div>
+                                                        <h3 className="font-bold text-gray-900 text-base">{product.name}</h3>
+                                                        <div className="flex items-center gap-2 mt-1.5">
+                                                            <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold ${CATEGORY_COLORS[product.category]}`}>
+                                                                {product.category}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <button
+                                                    onClick={(e) => { e.stopPropagation(); onDelete(product.id); }}
+                                                    className="text-gray-300 hover:text-red-500 p-2"
+                                                >
+                                                    <MoreHorizontal size={20} />
+                                                </button>
+                                            </div>
+
+                                            <div className="flex items-center justify-between bg-gray-50 rounded-xl p-3 border border-gray-100">
+                                                <div className="flex flex-col">
+                                                    <span className="text-[10px] uppercase font-bold text-gray-400 mb-1 tracking-wide">Expiry Status</span>
+                                                    <div className={`inline-flex items-center gap-1.5 text-xs font-bold ${getStatusColor(daysLeft).split(' ')[0]}`}>
+                                                        {daysLeft < 0 ? <AlertTriangle size={12} /> : <Calendar size={12} />}
+                                                        {getStatusText(daysLeft)}
+                                                    </div>
+                                                </div>
+                                                <div className="flex flex-col items-end" onClick={(e) => e.stopPropagation()}>
+                                                    <span className="text-[10px] uppercase font-bold text-gray-400 mb-1 tracking-wide">In Stock</span>
+                                                    <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-lg p-1 shadow-sm relative">
+                                                        <button
+                                                            onClick={() => onUpdateQuantity(product.id, Math.max(0, product.quantity - 1))}
+                                                            className="w-6 h-6 flex items-center justify-center text-gray-400 hover:bg-gray-100 hover:text-gray-900 rounded"
+                                                        >
+                                                            <Minus size={12} strokeWidth={2.5} />
+                                                        </button>
+                                                        <span className="w-6 text-center text-sm font-bold text-gray-900">{product.quantity}</span>
+                                                        <button
+                                                            onClick={() => onUpdateQuantity(product.id, product.quantity + 1)}
+                                                            className="w-6 h-6 flex items-center justify-center text-gray-400 hover:bg-gray-100 hover:text-gray-900 rounded"
+                                                        >
+                                                            <Plus size={12} strokeWidth={2.5} />
+                                                        </button>
                                                     </div>
                                                 </div>
                                             </div>
-                                            <button
-                                                onClick={(e) => { e.stopPropagation(); onDelete(product.id); }}
-                                                className="text-gray-300 hover:text-red-500 p-2"
-                                            >
-                                                <MoreHorizontal size={20} />
-                                            </button>
                                         </div>
-
-                                        <div className="flex items-center justify-between bg-gray-50 rounded-xl p-3 border border-gray-100">
-                                            <div className="flex flex-col">
-                                                <span className="text-[10px] uppercase font-bold text-gray-400 mb-1 tracking-wide">Expiry Status</span>
-                                                <div className={`inline-flex items-center gap-1.5 text-xs font-bold ${getStatusColor(daysLeft).split(' ')[0]}`}>
-                                                    {daysLeft < 0 ? <AlertTriangle size={12} /> : <Calendar size={12} />}
-                                                    {getStatusText(daysLeft)}
-                                                </div>
-                                            </div>
-                                            <div className="flex flex-col items-end" onClick={(e) => e.stopPropagation()}>
-                                                <span className="text-[10px] uppercase font-bold text-gray-400 mb-1 tracking-wide">In Stock</span>
-                                                <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-lg p-1 shadow-sm relative">
-                                                    <button
-                                                        onClick={() => onUpdateQuantity(product.id, Math.max(0, product.quantity - 1))}
-                                                        className="w-6 h-6 flex items-center justify-center text-gray-400 hover:bg-gray-100 hover:text-gray-900 rounded"
-                                                    >
-                                                        <Minus size={12} strokeWidth={2.5} />
-                                                    </button>
-                                                    <span className="w-6 text-center text-sm font-bold text-gray-900">{product.quantity}</span>
-                                                    <button
-                                                        onClick={() => onUpdateQuantity(product.id, product.quantity + 1)}
-                                                        className="w-6 h-6 flex items-center justify-center text-gray-400 hover:bg-gray-100 hover:text-gray-900 rounded"
-                                                    >
-                                                        <Plus size={12} strokeWidth={2.5} />
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                )
-                            })}
+                                    )
+                                }}
+                            />
                         </div>
                     </>
                 )}

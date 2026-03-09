@@ -1,93 +1,51 @@
-import { GoogleGenAI } from "@google/genai";
 import { Category } from '../types';
 
-const getAiClient = () => {
-  const apiKey = process.env.GEMINI_API_KEY ||
-    process.env.API_KEY ||
-    (import.meta as any).env?.VITE_GEMINI_API_KEY ||
-    (import.meta as any).env?.VITE_API_KEY;
-
-  if (!apiKey || apiKey === 'undefined' || apiKey === '') {
-    console.warn("⚠️ Gemini API Key is missing. Smart Scan features will fail.");
-    throw new Error("API Key is missing. Please set GEMINI_API_KEY in your environment variables.");
-  }
-
-  return new GoogleGenAI({ apiKey });
-};
+const BACKEND_URL = 'http://localhost:3001/api';
 
 export const analyzeProductImage = async (base64Image: string): Promise<{ name: string; category: Category; estimatedDays: number }> => {
-  const ai = getAiClient();
-
-  // NOTE: gemini-2.5-flash-image (nano banana) does NOT support responseSchema or responseMimeType='application/json'.
-  // We must prompt for JSON text and parse it manually.
-
   try {
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash-image',
-      contents: {
-        parts: [
-          {
-            inlineData: {
-              mimeType: 'image/jpeg',
-              data: base64Image.split(',')[1] // Remove data URL prefix
-            }
-          },
-          {
-            text: `Identify this product for a shop inventory system. 
-            Return a valid JSON object (NO markdown formatting, just the raw JSON) with these fields:
-            - name: string (concise product name like 'Milk 1L')
-            - category: string (one of: ${Object.values(Category).join(', ')})
-            - estimatedDays: number (conservative shelf life in days from now)
-            
-            Example: {"name": "Apple", "category": "Produce", "estimatedDays": 14}`
-          }
-        ]
-      },
-      config: {
-        temperature: 0.4
-      }
+    const response = await fetch(`${BACKEND_URL}/scan`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ image: base64Image })
     });
 
-    let text = response.text;
-    if (!text) throw new Error("No response from AI");
+    if (!response.ok) {
+      throw new Error(`Backend error: ${response.statusText}`);
+    }
 
-    // Clean up potential markdown code blocks if the model adds them
-    text = text.replace(/```json/g, '').replace(/```/g, '').trim();
-
-    const data = JSON.parse(text);
+    const data = await response.json();
+    if (data.error) throw new Error(data.error);
 
     return {
-      name: data.name || "Unknown Product",
-      category: Object.values(Category).includes(data.category) ? data.category as Category : Category.OTHER,
-      estimatedDays: typeof data.estimatedDays === 'number' ? data.estimatedDays : 7
+      name: data.name,
+      category: data.category,
+      estimatedDays: data.estimatedDays
     };
-
   } catch (error) {
-    console.error("Gemini Image Analysis Error:", error);
-    throw error; // Propagate error so UI can handle it
+    console.error("Smart Scan Error:", error);
+    throw error;
   }
 };
 
 export const getExpiryAdvice = async (items: { name: string; expiryDate: string; quantity: number }[]): Promise<string> => {
-  const ai = getAiClient();
-
   if (items.length === 0) return "No items are expiring soon.";
 
-  const prompt = `
-    I have a small shop. Here is a list of items expiring very soon or already expired:
-    ${JSON.stringify(items)}
-    
-    Provide 3 concise, actionable business tips on how to handle these specific items to minimize loss (e.g., specific discount amount, bundle idea, or donation). Keep it under 100 words.
-  `;
-
   try {
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
-      contents: prompt,
+    const response = await fetch(`${BACKEND_URL}/advice`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ items })
     });
-    return response.text || "Could not generate advice.";
+
+    if (!response.ok) {
+      throw new Error(`Backend error: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return data.advice || "Could not generate advice.";
   } catch (error) {
-    console.error("Gemini Advice Error:", error);
+    console.error("Expiry Advice Error:", error);
     return "Unable to retrieve advice at this time.";
   }
 };
