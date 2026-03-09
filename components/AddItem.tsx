@@ -243,67 +243,61 @@ const AddItem: React.FC<AddItemProps> = ({ onAdd, onCancel }) => {
                 {/* ═══════════════════ Step 1: Product Basics ═══════════════════ */}
                 {currentStep === 1 && (
                     <div className="p-6 md:p-8 space-y-6 animate-in slide-in-from-right-8 fade-in duration-500 flex-1">
-                        {/* Smart Scan Banner */}
-                        <div className={`relative bg-gradient-to-br from-primary-50 via-indigo-50/80 to-violet-50/50 rounded-2xl p-5 border border-primary-100/80 overflow-hidden ${isBackendAvailable === false ? 'opacity-60' : ''}`}>
-                            <div className="absolute top-0 right-0 w-40 h-40 bg-primary-200 rounded-full blur-3xl opacity-15 -mr-12 -mt-12"></div>
-                            <div className="absolute bottom-0 left-0 w-24 h-24 bg-indigo-200 rounded-full blur-2xl opacity-10 -ml-6 -mb-6"></div>
+                        {/* Smart Scan Banner — only shown when backend is available */}
+                        {isBackendAvailable !== false && (
+                            <div className="relative bg-gradient-to-br from-primary-50 via-indigo-50/80 to-violet-50/50 rounded-2xl p-5 border border-primary-100/80 overflow-hidden">
+                                <div className="absolute top-0 right-0 w-40 h-40 bg-primary-200 rounded-full blur-3xl opacity-15 -mr-12 -mt-12"></div>
+                                <div className="absolute bottom-0 left-0 w-24 h-24 bg-indigo-200 rounded-full blur-2xl opacity-10 -ml-6 -mb-6"></div>
 
-                            <div className="relative z-10 flex items-start gap-4">
-                                <div className="bg-white p-3 rounded-xl text-primary-600 shadow-sm ring-1 ring-primary-100 shrink-0">
-                                    <Sparkles size={22} />
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                    <div className="flex items-center gap-2 mb-1">
-                                        <h4 className="font-bold text-gray-900">AI Smart Scan</h4>
-                                        <span className="text-[9px] font-bold text-primary-600 bg-primary-100 px-1.5 py-0.5 rounded uppercase tracking-wider">Beta</span>
-                                        {isBackendAvailable === false && (
-                                            <span className="text-[9px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded uppercase tracking-wider border border-amber-200">Backend Offline</span>
-                                        )}
+                                <div className="relative z-10 flex items-start gap-4">
+                                    <div className="bg-white p-3 rounded-xl text-primary-600 shadow-sm ring-1 ring-primary-100 shrink-0">
+                                        <Sparkles size={22} />
                                     </div>
-                                    {isBackendAvailable === false ? (
-                                        <p className="text-xs text-amber-600 leading-relaxed">Start the backend server (<code className="bg-amber-100 px-1 rounded">cd backend && node server.js</code>) to enable AI-powered product detection.</p>
-                                    ) : (
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <h4 className="font-bold text-gray-900">AI Smart Scan</h4>
+                                            <span className="text-[9px] font-bold text-primary-600 bg-primary-100 px-1.5 py-0.5 rounded uppercase tracking-wider">Beta</span>
+                                        </div>
                                         <p className="text-xs text-gray-500 leading-relaxed">Upload a product photo to auto-fill name, category, and estimated shelf life.</p>
+                                        <div className="mt-3 flex flex-wrap items-center gap-2.5">
+                                            <label className="cursor-pointer bg-white border border-gray-200 text-gray-700 text-xs font-bold px-4 py-2.5 rounded-lg hover:bg-gray-50 hover:border-gray-300 hover:shadow-sm transition-all flex items-center gap-2 group active:scale-95">
+                                                <Camera size={14} className="group-hover:scale-110 transition-transform text-primary-500" /> Choose Photo
+                                                <input
+                                                    ref={fileInputRef}
+                                                    type="file"
+                                                    accept="image/*"
+                                                    className="hidden"
+                                                    onChange={handleFileChange}
+                                                />
+                                            </label>
+                                            {imagePreview && (
+                                                <span className="text-[10px] text-emerald-600 font-bold flex items-center gap-1 bg-emerald-50 px-2 py-1 rounded-md border border-emerald-100">
+                                                    <Check size={10} strokeWidth={3} /> Image attached
+                                                </span>
+                                            )}
+                                            {isAnalyzing && (
+                                                <span className="text-[10px] text-primary-600 flex items-center gap-1.5 font-bold bg-white/80 px-2 py-1 rounded-md">
+                                                    <Loader2 size={10} className="animate-spin" /> Analyzing...
+                                                </span>
+                                            )}
+                                            {analysisError && (
+                                                <span className="text-[10px] text-amber-600 flex items-center gap-1 font-medium">
+                                                    <AlertTriangle size={10} /> {analysisError}
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
+                                    {imagePreview && (
+                                        <div className="relative w-20 h-20 rounded-xl bg-white border border-gray-200 overflow-hidden shrink-0 shadow-sm group">
+                                            <img src={imagePreview} className="w-full h-full object-cover" alt="Preview" />
+                                            <button type="button" onClick={handleRemoveImage} aria-label="Remove image" className="absolute inset-0 bg-black/40 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-sm rounded-xl">
+                                                <X size={18} />
+                                            </button>
+                                        </div>
                                     )}
-                                    <div className="mt-3 flex flex-wrap items-center gap-2.5">
-                                        <label className={`bg-white border border-gray-200 text-gray-700 text-xs font-bold px-4 py-2.5 rounded-lg transition-all flex items-center gap-2 group ${isBackendAvailable === false ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-gray-50 hover:border-gray-300 hover:shadow-sm active:scale-95'}`}>
-                                            <Camera size={14} className="group-hover:scale-110 transition-transform text-primary-500" /> Choose Photo
-                                            <input
-                                                ref={fileInputRef}
-                                                type="file"
-                                                accept="image/*"
-                                                className="hidden"
-                                                onChange={handleFileChange}
-                                                disabled={isBackendAvailable === false}
-                                            />
-                                        </label>
-                                        {imagePreview && (
-                                            <span className="text-[10px] text-emerald-600 font-bold flex items-center gap-1 bg-emerald-50 px-2 py-1 rounded-md border border-emerald-100">
-                                                <Check size={10} strokeWidth={3} /> Image attached
-                                            </span>
-                                        )}
-                                        {isAnalyzing && (
-                                            <span className="text-[10px] text-primary-600 flex items-center gap-1.5 font-bold bg-white/80 px-2 py-1 rounded-md">
-                                                <Loader2 size={10} className="animate-spin" /> Analyzing...
-                                            </span>
-                                        )}
-                                        {analysisError && (
-                                            <span className="text-[10px] text-amber-600 flex items-center gap-1 font-medium">
-                                                <AlertTriangle size={10} /> {analysisError}
-                                            </span>
-                                        )}
-                                    </div>
                                 </div>
-                                {imagePreview && (
-                                    <div className="relative w-20 h-20 rounded-xl bg-white border border-gray-200 overflow-hidden shrink-0 shadow-sm group">
-                                        <img src={imagePreview} className="w-full h-full object-cover" alt="Preview" />
-                                        <button type="button" onClick={handleRemoveImage} aria-label="Remove image" className="absolute inset-0 bg-black/40 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-sm rounded-xl">
-                                            <X size={18} />
-                                        </button>
-                                    </div>
-                                )}
                             </div>
-                        </div>
+                        )}
 
                         {/* Product Name */}
                         <FieldGroup label="Product Name" required icon={Package} error={errors.name?.message}>
