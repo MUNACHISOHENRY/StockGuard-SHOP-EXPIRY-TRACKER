@@ -21,6 +21,10 @@ const Category = {
     OTHER: 'Other'
 };
 
+app.get('/api/health', (req, res) => {
+    res.json({ status: 'ok' });
+});
+
 app.post('/api/scan', async (req, res) => {
     try {
         const { image } = req.body;

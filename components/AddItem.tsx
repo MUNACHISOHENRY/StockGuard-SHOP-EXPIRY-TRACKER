@@ -3,7 +3,7 @@ import { AlertTriangle, ArrowLeft, Calculator, CalendarDays, Camera, Check, Chev
 import React, { useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { ProductFormValues, productSchema } from '../schemas/productSchema';
-import { analyzeProductImage } from '../services/geminiService';
+import { analyzeProductImage, checkBackendHealth } from '../services/geminiService';
 import { Category, Product } from '../types';
 
 interface AddItemProps {
@@ -101,7 +101,13 @@ const AddItem: React.FC<AddItemProps> = ({ onAdd, onCancel }) => {
     const [imagePreview, setImagePreview] = useState<string | null>(null);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [analysisError, setAnalysisError] = useState<string | null>(null);
+    const [isBackendAvailable, setIsBackendAvailable] = useState<boolean | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    // Check backend availability on mount
+    useEffect(() => {
+        checkBackendHealth().then(setIsBackendAvailable);
+    }, []);
 
     // Auto Calculate Expiry
     useEffect(() => {
@@ -238,7 +244,7 @@ const AddItem: React.FC<AddItemProps> = ({ onAdd, onCancel }) => {
                 {currentStep === 1 && (
                     <div className="p-6 md:p-8 space-y-6 animate-in slide-in-from-right-8 fade-in duration-500 flex-1">
                         {/* Smart Scan Banner */}
-                        <div className="relative bg-gradient-to-br from-primary-50 via-indigo-50/80 to-violet-50/50 rounded-2xl p-5 border border-primary-100/80 overflow-hidden">
+                        <div className={`relative bg-gradient-to-br from-primary-50 via-indigo-50/80 to-violet-50/50 rounded-2xl p-5 border border-primary-100/80 overflow-hidden ${isBackendAvailable === false ? 'opacity-60' : ''}`}>
                             <div className="absolute top-0 right-0 w-40 h-40 bg-primary-200 rounded-full blur-3xl opacity-15 -mr-12 -mt-12"></div>
                             <div className="absolute bottom-0 left-0 w-24 h-24 bg-indigo-200 rounded-full blur-2xl opacity-10 -ml-6 -mb-6"></div>
 
@@ -250,10 +256,17 @@ const AddItem: React.FC<AddItemProps> = ({ onAdd, onCancel }) => {
                                     <div className="flex items-center gap-2 mb-1">
                                         <h4 className="font-bold text-gray-900">AI Smart Scan</h4>
                                         <span className="text-[9px] font-bold text-primary-600 bg-primary-100 px-1.5 py-0.5 rounded uppercase tracking-wider">Beta</span>
+                                        {isBackendAvailable === false && (
+                                            <span className="text-[9px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded uppercase tracking-wider border border-amber-200">Backend Offline</span>
+                                        )}
                                     </div>
-                                    <p className="text-xs text-gray-500 leading-relaxed">Upload a product photo to auto-fill name, category, and estimated shelf life.</p>
+                                    {isBackendAvailable === false ? (
+                                        <p className="text-xs text-amber-600 leading-relaxed">Start the backend server (<code className="bg-amber-100 px-1 rounded">cd backend && node server.js</code>) to enable AI-powered product detection.</p>
+                                    ) : (
+                                        <p className="text-xs text-gray-500 leading-relaxed">Upload a product photo to auto-fill name, category, and estimated shelf life.</p>
+                                    )}
                                     <div className="mt-3 flex flex-wrap items-center gap-2.5">
-                                        <label className="cursor-pointer bg-white border border-gray-200 text-gray-700 text-xs font-bold px-4 py-2.5 rounded-lg hover:bg-gray-50 hover:border-gray-300 hover:shadow-sm transition-all flex items-center gap-2 group active:scale-95">
+                                        <label className={`bg-white border border-gray-200 text-gray-700 text-xs font-bold px-4 py-2.5 rounded-lg transition-all flex items-center gap-2 group ${isBackendAvailable === false ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-gray-50 hover:border-gray-300 hover:shadow-sm active:scale-95'}`}>
                                             <Camera size={14} className="group-hover:scale-110 transition-transform text-primary-500" /> Choose Photo
                                             <input
                                                 ref={fileInputRef}
@@ -261,6 +274,7 @@ const AddItem: React.FC<AddItemProps> = ({ onAdd, onCancel }) => {
                                                 accept="image/*"
                                                 className="hidden"
                                                 onChange={handleFileChange}
+                                                disabled={isBackendAvailable === false}
                                             />
                                         </label>
                                         {imagePreview && (
@@ -283,7 +297,7 @@ const AddItem: React.FC<AddItemProps> = ({ onAdd, onCancel }) => {
                                 {imagePreview && (
                                     <div className="relative w-20 h-20 rounded-xl bg-white border border-gray-200 overflow-hidden shrink-0 shadow-sm group">
                                         <img src={imagePreview} className="w-full h-full object-cover" alt="Preview" />
-                                        <button type="button" onClick={handleRemoveImage} className="absolute inset-0 bg-black/40 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-sm rounded-xl">
+                                        <button type="button" onClick={handleRemoveImage} aria-label="Remove image" className="absolute inset-0 bg-black/40 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-sm rounded-xl">
                                             <X size={18} />
                                         </button>
                                     </div>
@@ -374,7 +388,7 @@ const AddItem: React.FC<AddItemProps> = ({ onAdd, onCancel }) => {
                                     Initial Stock
                                 </label>
                                 <div className="flex items-center gap-3 bg-white p-2 rounded-xl border border-gray-200 shadow-sm">
-                                    <button type="button" onClick={() => adjustQuantity(-1)} className="w-10 h-10 shrink-0 rounded-lg bg-gray-50 border border-gray-200 flex items-center justify-center hover:bg-gray-100 hover:border-gray-300 transition-all text-gray-500 active:scale-95">
+                                    <button type="button" onClick={() => adjustQuantity(-1)} aria-label="Decrease quantity" className="w-10 h-10 shrink-0 rounded-lg bg-gray-50 border border-gray-200 flex items-center justify-center hover:bg-gray-100 hover:border-gray-300 transition-all text-gray-500 active:scale-95">
                                         <Minus size={18} strokeWidth={2.5} />
                                     </button>
                                     <input
@@ -382,7 +396,7 @@ const AddItem: React.FC<AddItemProps> = ({ onAdd, onCancel }) => {
                                         className="flex-1 text-center bg-transparent text-2xl font-bold outline-none text-gray-900"
                                         {...register('quantity', { valueAsNumber: true })}
                                     />
-                                    <button type="button" onClick={() => adjustQuantity(1)} className="w-10 h-10 shrink-0 rounded-lg bg-gray-50 border border-gray-200 flex items-center justify-center hover:bg-gray-100 hover:border-gray-300 transition-all text-gray-500 active:scale-95">
+                                    <button type="button" onClick={() => adjustQuantity(1)} aria-label="Increase quantity" className="w-10 h-10 shrink-0 rounded-lg bg-gray-50 border border-gray-200 flex items-center justify-center hover:bg-gray-100 hover:border-gray-300 transition-all text-gray-500 active:scale-95">
                                         <Plus size={18} strokeWidth={2.5} />
                                     </button>
                                 </div>
@@ -397,7 +411,7 @@ const AddItem: React.FC<AddItemProps> = ({ onAdd, onCancel }) => {
                                     <span className="text-[9px] font-bold text-gray-400 bg-gray-200/80 px-1.5 py-0.5 rounded normal-case tracking-normal">Optional</span>
                                 </label>
                                 <div className="flex items-center gap-3 bg-white p-2 rounded-xl border border-gray-200 shadow-sm">
-                                    <button type="button" onClick={() => adjustQuantity(-1, 'minStockThreshold')} className="w-10 h-10 shrink-0 rounded-lg bg-gray-50 border border-gray-200 flex items-center justify-center hover:bg-gray-100 hover:border-gray-300 transition-all text-gray-500 active:scale-95">
+                                    <button type="button" onClick={() => adjustQuantity(-1, 'minStockThreshold')} aria-label="Decrease threshold" className="w-10 h-10 shrink-0 rounded-lg bg-gray-50 border border-gray-200 flex items-center justify-center hover:bg-gray-100 hover:border-gray-300 transition-all text-gray-500 active:scale-95">
                                         <Minus size={18} strokeWidth={2.5} />
                                     </button>
                                     <input
@@ -405,7 +419,7 @@ const AddItem: React.FC<AddItemProps> = ({ onAdd, onCancel }) => {
                                         className="flex-1 text-center bg-transparent text-2xl font-bold outline-none text-gray-900"
                                         {...register('minStockThreshold', { valueAsNumber: true })}
                                     />
-                                    <button type="button" onClick={() => adjustQuantity(1, 'minStockThreshold')} className="w-10 h-10 shrink-0 rounded-lg bg-gray-50 border border-gray-200 flex items-center justify-center hover:bg-gray-100 hover:border-gray-300 transition-all text-gray-500 active:scale-95">
+                                    <button type="button" onClick={() => adjustQuantity(1, 'minStockThreshold')} aria-label="Increase threshold" className="w-10 h-10 shrink-0 rounded-lg bg-gray-50 border border-gray-200 flex items-center justify-center hover:bg-gray-100 hover:border-gray-300 transition-all text-gray-500 active:scale-95">
                                         <Plus size={18} strokeWidth={2.5} />
                                     </button>
                                 </div>

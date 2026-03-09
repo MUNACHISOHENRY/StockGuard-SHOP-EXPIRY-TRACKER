@@ -26,7 +26,6 @@ export interface Product {
   sku?: string;
   location?: string;
   minStockThreshold?: number; // For low stock alerts
-  userId?: string; // Associated user ID
 }
 
 export type ViewState = 'DASHBOARD' | 'INVENTORY' | 'ADD_ITEM' | 'PRODUCT_DETAILS';

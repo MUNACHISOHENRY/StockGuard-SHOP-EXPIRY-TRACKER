@@ -2,6 +2,21 @@ import { Category } from '../types';
 
 const BACKEND_URL = 'http://localhost:3001/api';
 
+/**
+ * Check if the AI backend server is running.
+ */
+export const checkBackendHealth = async (): Promise<boolean> => {
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 2000);
+    const response = await fetch(`${BACKEND_URL}/health`, { signal: controller.signal });
+    clearTimeout(timeoutId);
+    return response.ok;
+  } catch {
+    return false;
+  }
+};
+
 export const analyzeProductImage = async (base64Image: string): Promise<{ name: string; category: Category; estimatedDays: number }> => {
   try {
     const response = await fetch(`${BACKEND_URL}/scan`, {

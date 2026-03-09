@@ -39,7 +39,7 @@ const ToastContainer: React.FC<{ toasts: Toast[]; onDismiss: (id: string) => voi
                 >
                     <div className="shrink-0 opacity-90">{icons[toast.type]}</div>
                     <p className="text-sm font-medium flex-1">{toast.message}</p>
-                    <button onClick={() => onDismiss(toast.id)} className="shrink-0 opacity-60 hover:opacity-100 transition-opacity p-0.5">
+                    <button onClick={() => onDismiss(toast.id)} aria-label="Dismiss notification" className="shrink-0 opacity-60 hover:opacity-100 transition-opacity p-0.5">
                         <X size={14} />
                     </button>
                 </div>
@@ -171,7 +171,7 @@ const MainLayout: React.FC = () => {
 
                 <div className="px-3 py-5 flex-1 overflow-y-auto">
                     <p className={`text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3 transition-all ${isSidebarCollapsed ? 'opacity-0 h-0 mb-0' : 'px-2'}`}>Menu</p>
-                    <nav className="space-y-1">
+                    <nav className="space-y-1" role="navigation" aria-label="Main navigation">
                         <NavItem path="/" icon={LayoutDashboard} label="Dashboard" />
                         <NavItem path="/inventory" icon={List} label="Inventory" />
                         <NavItem path="/inventory/add" icon={PlusCircle} label="Add Item" />
@@ -200,6 +200,7 @@ const MainLayout: React.FC = () => {
 
                 <button
                     onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+                    aria-label={isSidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
                     className="absolute -right-3 top-20 bg-white border border-gray-200 rounded-full p-1.5 text-gray-400 hover:text-primary-600 shadow-md hover:shadow-lg transition-all z-30 flex items-center justify-center hover:scale-110 active:scale-95"
                 >
                     {isSidebarCollapsed ? <ChevronRight size={12} strokeWidth={3} /> : <ChevronLeft size={12} strokeWidth={3} />}
@@ -234,13 +235,14 @@ const MainLayout: React.FC = () => {
                                 <input
                                     type="text"
                                     placeholder="Search products..."
+                                    aria-label="Search products"
                                     className="bg-transparent border-none text-sm focus:outline-none w-full text-gray-700 placeholder:text-gray-400"
                                     value={globalSearch}
                                     onChange={(e) => { setGlobalSearch(e.target.value); setShowSearchResults(true); }}
                                     onFocus={() => globalSearch && setShowSearchResults(true)}
                                 />
                                 {globalSearch && (
-                                    <button onClick={() => { setGlobalSearch(''); setShowSearchResults(false); }} className="text-gray-400 hover:text-gray-600 shrink-0">
+                                    <button onClick={() => { setGlobalSearch(''); setShowSearchResults(false); }} aria-label="Clear search" className="text-gray-400 hover:text-gray-600 shrink-0">
                                         <X size={14} />
                                     </button>
                                 )}
@@ -291,6 +293,7 @@ const MainLayout: React.FC = () => {
                         <div className="relative" ref={notifRef}>
                             <button
                                 onClick={() => setShowNotifications(!showNotifications)}
+                                aria-label="Toggle notifications"
                                 className="p-2 text-gray-400 hover:text-gray-600 rounded-xl hover:bg-gray-100 transition-all relative"
                             >
                                 <Bell size={20} />
