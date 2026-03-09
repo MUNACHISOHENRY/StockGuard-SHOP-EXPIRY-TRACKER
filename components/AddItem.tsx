@@ -387,7 +387,7 @@ const AddItem: React.FC<AddItemProps> = ({ onAdd, onCancel }) => {
                                     </button>
                                     <input
                                         type="number"
-                                        className="flex-1 text-center bg-transparent text-2xl font-bold outline-none text-gray-900"
+                                        className="flex-1 min-w-0 w-0 text-center bg-transparent text-2xl font-bold outline-none text-gray-900"
                                         {...register('quantity', { valueAsNumber: true })}
                                     />
                                     <button type="button" onClick={() => adjustQuantity(1)} aria-label="Increase quantity" className="w-10 h-10 shrink-0 rounded-lg bg-gray-50 border border-gray-200 flex items-center justify-center hover:bg-gray-100 hover:border-gray-300 transition-all text-gray-500 active:scale-95">
@@ -410,7 +410,7 @@ const AddItem: React.FC<AddItemProps> = ({ onAdd, onCancel }) => {
                                     </button>
                                     <input
                                         type="number"
-                                        className="flex-1 text-center bg-transparent text-2xl font-bold outline-none text-gray-900"
+                                        className="flex-1 min-w-0 w-0 text-center bg-transparent text-2xl font-bold outline-none text-gray-900"
                                         {...register('minStockThreshold', { valueAsNumber: true })}
                                     />
                                     <button type="button" onClick={() => adjustQuantity(1, 'minStockThreshold')} aria-label="Increase threshold" className="w-10 h-10 shrink-0 rounded-lg bg-gray-50 border border-gray-200 flex items-center justify-center hover:bg-gray-100 hover:border-gray-300 transition-all text-gray-500 active:scale-95">
